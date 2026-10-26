@@ -163,6 +163,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .camnote{margin:0;font-size:12px;color:#8fb6c7}
 html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
 .maphead button{min-width:44px;min-height:44px;font-size:20px!important}
+@media (max-height:520px){#miniMap{width:min(20vw,128px)}}
 .mapbox::after{content:'Tap the map for the small map. Tap HIDE MAP to hide all maps.';display:block;text-align:center;font-size:12px;color:#8fb6c7}
 .mapbtn{width:auto!important;padding:0 10px!important;font:400 12px Bungee,sans-serif!important;letter-spacing:.04em}
 .mapui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,22,.6);z-index:90;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
