@@ -76,6 +76,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .swatches{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .sw{aspect-ratio:1;border-radius:12px;border:3px solid transparent;background:var(--c)}
 .sw.on{border-color:var(--ink);box-shadow:0 0 0 3px var(--abyss) inset}
+.pgrp{grid-column:1/-1;font:400 12px Bungee,sans-serif;letter-spacing:.06em;color:var(--sun);margin:6px 2px -2px;border-bottom:1px solid rgba(255,209,102,.25);padding-bottom:3px}
 .hats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .hat{border:2px solid var(--line);background:var(--deep);border-radius:12px;padding:8px 6px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px}
 .hat canvas{width:60px;height:60px}
@@ -140,6 +141,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .act.scan{background:#1e8573}
 .act.zap{background:#b0103a}
 .act.sab{background:#6b2fa0}
+#useBtn{grid-column:2}
+@media (max-height:520px){.actions{grid-template-columns:repeat(3,64px)!important}#useBtn{grid-column:3}}
 .act.trk{background:#1f8a5b}.act.inv{background:#5b3fd0}
 .role.trk{background:#5fe3a1;color:#032a17}
 .act .cd{font-family:var(--body);font-weight:700;font-size:15px}
@@ -664,8 +667,8 @@ const BAD=['fuck','shit','bitch','dick','cock','pussy','ass','sex','porn','nigg'
 function cleanName(n){n=String(n||'').replace(/[^\w .\-]/g,'').trim().slice(0,15);if(!n)n='Robot';const l=n.toLowerCase().replace(/[^a-z]/g,'');if(BAD.some(b=>l.includes(b)))n='Robot'+Math.floor(rand(10,99));return n}
 
 /* quick chat phrases: {X} = picked robot */
-const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.','I saw {X} vent!'];
-const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,17,15,14,6];
+const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.','I saw {X} vent!','I am a Tracker.','I am an Engineer.','I think {X} is a Tracker.','I think {X} is an Engineer.'];
+const QORDER=[0,1,2,3,4,5,7,16,18,19,8,9,10,11,12,13,17,20,21,15,14,6];
 const quickText=(p,x,r,y)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{Y}',y||'someone').replace('{R}',r||'a hallway'):null;
 
 /* ================= map ================= */
@@ -955,7 +958,7 @@ function newGame(mode,role){
   if(nGl===2){const pool=ents.filter(e=>!e.glitch);pick(pool).glitch=true}
   if(mode==='online'){shuffle(ents.filter(e=>!e.glitch)).slice(0,engCount()).forEach(e=>e.eng=true)}
   G_ENG=ents.filter(e=>e.eng).length;
-  if(mode==='online'){if(trkOn()){const pool=ents.filter(e=>!e.glitch&&!e.eng);if(pool.length)pick(pool).trk=true}}
+  if(mode==='online'){shuffle(ents.filter(e=>!e.glitch&&!e.eng)).slice(0,trkOn()).forEach(e=>e.trk=true)}
   else if(mode!=='tutorial'&&!ents[0].glitch&&Math.random()<0.5)ents[0].trk=true;
   ents.forEach(e=>{if(e.glitch&&e.human&&mode!=='tutorial'&&Math.random()<0.5){e.inv=true;e.invLeft=5}if(e.trk)e.trkLeft=2});
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
@@ -984,7 +987,7 @@ function enterGameUI(isGlitch){
   $('#roleChip').classList.toggle('eng',!isGlitch&&!!G.me.eng);$('#roleChip').classList.toggle('trk',!isGlitch&&!!G.me.trk);
   $('#trkBtn').hidden=!(!isGlitch&&G.me.trk);$('#invBtn').hidden=!(isGlitch&&G.me.inv);G.track=null;
   if(!isGlitch&&G.me.trk){$('#roleChip').textContent='TRACKER';setTimeout(()=>toast('You are the TRACKER. Stand next to someone and tap TRACK. You can see them on your map for 30 seconds. You get 2 trackers.',5),3600)}
-  if(isGlitch&&G.me.inv)setTimeout(()=>toast('Bonus power: you can go INVISIBLE! Tap POOF to vanish for 20 seconds, 5 times a game. You must be visible to zap.',5),4200);
+  if(isGlitch&&G.me.inv)setTimeout(()=>toast('Bonus power: you can go INVISIBLE! Tap POOF to vanish for 20 seconds, 5 times a game. Tap UNPOOF to come back early. You must be visible to zap.',5),4200);
   if(!isGlitch&&G.me.eng){$('#roleChip').textContent='ENGINEER';setTimeout(()=>toast('You are an ENGINEER. You are crew, but you can use the vents too. Careful: if someone sees you vent, they may think you are the Glitch!',5),3600)}
   else if(G_ENG>0)setTimeout(()=>toast(`This game has ${G_ENG} secret Engineer${G_ENG>1?'s':''}. Engineers can use vents too, so venting does not prove someone is the Glitch.`,4.5),3600);
 }
@@ -1110,6 +1113,8 @@ function hostAction(ent,type,d){
       if(!ent.glitch&&Number.isInteger(d.id)&&ent.tasks.includes(d.id)&&!ent.done.has(d.id)){ent.done.add(d.id);deliver(ent,{t:'earn',n:5,msg:'Repair done! +5 coins'});checkWin()}break;
     case 'inv':
       if(inPlay&&ent.glitch&&ent.inv&&ent.alive&&(ent.invLeft??5)>0&&G.t>=(ent.invNext||0)&&!invPh(ent)){ent.invLeft=(ent.invLeft??5)-1;ent.invStart=G.t;ent.invEnd=G.t+23;ent.invNext=ent.invEnd+30}break;
+    case 'uninv':
+      if(ent.glitch&&invPh(ent)){ent.invStart=G.t-3.01;ent.invEnd=G.t;ent.invNext=G.t+30}break;
     case 'zap':
       if(inPlay&&ent.glitch&&ent.alive&&!invPh(ent)&&ent.inVent==null&&(ent.zcd||0)<=0&&target&&!target.glitch&&target.inVent==null&&target!==ent&&target.alive&&dist(ent,target)<100)doZap(ent,target);break;
     case 'scan':
@@ -1188,7 +1193,7 @@ cv.addEventListener('pointerdown',e=>{if(ventTap(e))e.stopImmediatePropagation()
 function doReport(){if(!G.me.alive||G.me.inVent!=null)return;const v=nearBody(G.me,110);if(v)act('report',{v:v.id})}
 function invPh(e){if(!G||!e||G.state==='meeting')return 0;if(G.guest)return e.invis?2:e.poof?1:0;if(!e.invStart)return 0;const t=G.t;if(t<e.invStart)return 0;if(t<e.invStart+3)return 1;if(t<e.invEnd)return 2;return 0}
 function invInfo(me){const now=performance.now()/1000;if(G.guest)return{left:me.invLeftL??5,cd:Math.max(0,(me.invNextL||0)-now),sec:Math.max(0,Math.ceil((me.invEndL||0)-now))};return{left:me.invLeft??5,cd:Math.max(0,(me.invNext||0)-G.t),sec:Math.max(0,Math.ceil((me.invEnd||0)-G.t))}}
-function doInvis(){const me=G.me;if(!me.inv||!me.alive||G.state!=='play'||invPh(me))return;const I=invInfo(me);if(I.left<=0||I.cd>0)return;
+function doInvis(){const me=G.me;if(!me.inv||!me.alive||G.state!=='play')return;if(invPh(me)){if(G.guest){const now=performance.now()/1000;me.invEndL=now;me.invNextL=now+30}act('uninv');toast('You are visible again.');return}const I=invInfo(me);if(I.left<=0||I.cd>0)return;
   if(G.guest){const now=performance.now()/1000;me.invLeftL=I.left-1;me.invEndL=now+23;me.invNextL=now+53}
   act('inv');toast(`Poof! You will be invisible in 3 seconds for 20 seconds. You cannot zap while invisible. ${I.left-1} left.`,3)}
 function doTrack(){const me=G.me;if(!me.trk||!me.alive||G.state!=='play')return;const now=performance.now()/1000;if((me.trkLeft??2)<=0||now<(me.trkNext||0))return;
@@ -1270,7 +1275,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;NET.eng=[0,1,2].includes(m.eng)?m.eng:0;NET.trk=m.trk?1:0;renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;NET.eng=[0,1,2,3].includes(m.eng)?m.eng:0;NET.trk=[0,1,2,3].includes(m.trk)?m.trk:0;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -1907,6 +1912,13 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
+const BUILD='1793058990';
+async function checkUpdate(){
+  if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
+  try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
+    if(m&&m[1]!==BUILD&&!G&&NET.mode==='off'){toast('Getting the newest version...',2);setTimeout(()=>location.reload(),900)}}catch(e){}
+}
+setInterval(checkUpdate,90000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkUpdate()});
 ['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
 document.documentElement.style.touchAction='manipulation';document.body.style.touchAction='manipulation';
@@ -1956,7 +1968,7 @@ function hud(){
   if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
   else{const left=me.scansLeft??2;sb.disabled=!me.alive||(me.scanCd||0)>0||left<=0;$('#scanCd').textContent=(me.scanCd||0)>0?Math.ceil(me.scanCd):(left+' left')}
   if(me.trk){const now=performance.now()/1000,tb=$('#trkBtn'),cd=Math.max(0,(me.trkNext||0)-now),left=me.trkLeft??2,on=G.track&&now<G.track.until;tb.disabled=!me.alive||left<=0||cd>0||me.inVent!=null;$('#trkCd').textContent=on?'ON '+Math.ceil(G.track.until-now):cd>0?Math.ceil(cd):left+' left'}
-  if(me.inv){const I=invInfo(me),ph=invPh(me),ib=$('#invBtn');ib.disabled=!me.alive||ph>0||I.left<=0||I.cd>0||me.inVent!=null;$('#invCd').textContent=ph?(ph===2?I.sec+'s':'...'):I.cd>0?Math.ceil(I.cd):I.left+' left'}
+  if(me.inv){const I=invInfo(me),ph=invPh(me),ib=$('#invBtn');ib.disabled=!me.alive||me.inVent!=null||(!ph&&(I.left<=0||I.cd>0));ib.firstChild.textContent=ph?'UNPOOF':'POOF';$('#invCd').textContent=ph?(ph===2?I.sec+'s':'...'):I.cd>0?Math.ceil(I.cd):I.left+' left'}
   if(me.glitch&&invPh(me))sb.disabled=true;
   $('#sabBtn').disabled=G.sabCd>0||!!G.breach||!!G.lights;if($('#sabBtn').disabled||G.state!=='play')$('#sabUI').hidden=true;$('#sabCd').textContent=G.sabCd>0?Math.ceil(G.sabCd):'';
   const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else if(G.lights){bn.hidden=false;bn.textContent='LIGHTS OUT · PANEL IN CENTRAL HUB'}else bn.hidden=true;
@@ -2516,18 +2528,18 @@ const ZAPS=[5,10,15,20,22,25,30,35,40,45,50,55,60];
 function zapSec(){if(!save.zapSetV2){save.zapSec=22;save.zapSetV2=true}return ZAPS.includes(save.zapSec)?save.zapSec:22}
 let G_ENG=0;
 function glCount(){return save.glitches===2?2:1}
-function trkOn(){return save.tracker?1:0}
+function trkOn(){const v=save.trackers??(save.tracker?1:0);return [0,1,2,3].includes(v)?v:0}
 function renderTrk(box,canEdit){
   if(!box)return;const v=canEdit?trkOn():(NET.trk||0);
-  if(!canEdit){box.innerHTML=`<span>Tracker</span><b>${v?'On':'Off'}</b>`;return}
-  box.innerHTML='<span>Tracker</span>'+[0,1].map(n=>`<button data-t="${n}" class="${v===n?'on':''}">${n?'On':'Off'}</button>`).join('');
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.tracker=+b.dataset.t===1;persist();renderTrk(box,true);if(NET.mode==='host')sendLobby()});
+  if(!canEdit){box.innerHTML=`<span>Trackers</span><b>${v}</b>`;return}
+  box.innerHTML='<span>Trackers</span>'+[0,1,2,3].map(n=>`<button data-t="${n}" class="${v===n?'on':''}">${n}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.trackers=+b.dataset.t;delete save.tracker;persist();renderTrk(box,true);if(NET.mode==='host')sendLobby()});
 }
-function engCount(){return [0,1,2].includes(save.engineers)?save.engineers:0}
+function engCount(){return [0,1,2,3].includes(save.engineers)?save.engineers:0}
 function renderEng(box,canEdit){
   if(!box)return;const v=canEdit?engCount():(NET.eng||0);
   if(!canEdit){box.innerHTML=`<span>Engineers</span><b>${v}</b>`;return}
-  box.innerHTML='<span>Engineers</span>'+[0,1,2].map(n=>`<button data-e="${n}" class="${v===n?'on':''}">${n}</button>`).join('');
+  box.innerHTML='<span>Engineers</span>'+[0,1,2,3].map(n=>`<button data-e="${n}" class="${v===n?'on':''}">${n}</button>`).join('');
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.engineers=+b.dataset.e;persist();renderEng(box,true);if(NET.mode==='host')sendLobby()});
 }
 function renderGl(box,canEdit){
@@ -2700,6 +2712,11 @@ $('#photoIn').addEventListener('change',e=>{
 });
 $('#photoToggle').onclick=()=>{save.photoOn=!save.photoOn;persist();renderPhoto();sendAvatar()};
 $('#photoRemove').onclick=()=>{if(save.photoSel<0)return;{const gone=save.photos[save.photoSel];if(gone&&!gone.base)save.photos.forEach(q=>{if(q.base&&q.rootId===gone.id){q.pub=false;q.st='';q.base=null;q.rootId=null;q.fx=null}})}save.photos.splice(save.photoSel,1);save.photoSel=Math.min(save.photoSel,save.photos.length-1);if(save.photoSel<0)save.photoOn=false;syncCur();renderShop();sendAvatar()};
+function priceGroups(list,fn){
+  const key=x=>x.points!=null?1e9+x.points:(x.cost||0),lab=x=>x.points!=null?x.points.toLocaleString()+' points':x.cost?x.cost.toLocaleString()+' coins':'Free',g=new Map();
+  list.slice().sort((a,b)=>key(a)-key(b)).forEach(x=>{const k=key(x);if(!g.has(k))g.set(k,{lab:lab(x),items:[]});g.get(k).items.push(x)});
+  return [...g.values()].map(v=>`<div class="pgrp">${v.lab}</div>`+v.items.map(fn).join('')).join('');
+}
 function renderShop(){
   save.hat=mkHat(hatBase(save.hat),hatColorOf(save.hat),OUTFIT_IDS.includes(save.outfit)?save.outfit:'');
   $('#shopCoins').textContent=save.coins;$('#nameIn').value=save.name;
@@ -2717,14 +2734,14 @@ function renderShop(){
   $('#ptsCols').innerHTML=PI.map(({k,it})=>{const key=k+':'+it.id,got=owns(key)||pts>=it.points,on=k==='paint'?save.color===it.id:save.visor===it.id;return`<button class="sw${on?' on':''}${got?'':' locked'}" style="--c:${it.id}" data-k="${k}" data-id="${it.id}" aria-label="${it.n} ${k}"><small>${it.n} ${k}${got?'':'<br>'+it.points.toLocaleString()+' pts'}</small></button>`}).join('');
   $('#ptsCols').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const k=b.dataset.k,id=b.dataset.id,it=(k==='paint'?PAINTS:VISORS).find(x=>x.id===id);tryGet(k+':'+id,it,()=>{if(k==='paint')save.color=id;else save.visor=id});renderShop()});
   const base=hatBase(save.hat);
-  $('#hats').innerHTML=HATS.map(h=>{const own=owns(h.id)||(h.points!=null&&pts>=h.points)||!h.cost&&h.points==null;const price=h.points!=null?h.points.toLocaleString()+' pts':h.cost.toLocaleString()+' coins';return`<button class="hat${base===h.id?' on':''}${own?'':' locked'}" data-h="${h.id}"><canvas width="120" height="120" data-hc="${h.id}"></canvas><span>${h.n}</span><span class="p">${own?(base===h.id?'Wearing':'Owned'):price}</span></button>`}).join('');
+  $('#hats').innerHTML=priceGroups(HATS,h=>{const own=owns(h.id)||(h.points!=null&&pts>=h.points)||!h.cost&&h.points==null;const price=h.points!=null?h.points.toLocaleString()+' pts':h.cost.toLocaleString()+' coins';return`<button class="hat${base===h.id?' on':''}${own?'':' locked'}" data-h="${h.id}"><canvas width="120" height="120" data-hc="${h.id}"></canvas><span>${h.n}</span><span class="p">${own?(base===h.id?'Wearing':'Owned'):price}</span></button>`});
   $('#hats').querySelectorAll('canvas').forEach(c=>{const x=c.getContext('2d');x.scale(2,2);drawBot(x,30,40,save.color,c.dataset.hc===base?save.hat:mkHat(c.dataset.hc,'',save.outfit||''),1,'ok',performance.now()/1000,false,save.visor)});
   const hb=$('#hatColBox');hb.hidden=base==='none';
   if(base!=='none'){$('#hatColTitle').textContent=HATS.find(h=>h.id===base).n.toUpperCase()+' COLOR';
     const cur=hatTint(save.hat),opts=[{id:'',n:'Normal',c:HAT_DEF[base]}].concat(HCOLS.map(x=>({id:x.id,n:x.n,c:x.id})));
     $('#hatCols').innerHTML=opts.map(o=>{const locked=false;const on=hatColorOf(save.hat)===o.id;return`<button class="sw${on?' on':''}${locked?' locked':''}" style="--c:${o.c}" data-o="${o.id}" aria-label="${o.n} ${base}">${locked?`<small>${HCOL_COST}c</small>`:cn(o.id||'n',o.n)}</button>`}).join('');
     $('#hatCols').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const id=b.dataset.o;if(!id){save.hat=base;persist();renderShop();return}save.hat=base+'|'+id;persist();renderShop()})}
-  {const cur=save.outfit||'';$('#outfits').innerHTML=OUTFITS.map(o=>{const key='o:'+o.id,own=!o.cost||owns(key);return`<button class="hat${cur===o.id?' on':''}${own?'':' locked'}" data-o="${o.id}"><canvas width="120" height="120" data-oc="${o.id}"></canvas><span>${o.n}</span><span class="p">${own?(cur===o.id?'Wearing':'Owned'):o.cost.toLocaleString()+' coins'}</span></button>`}).join('');
+  {const cur=save.outfit||'';$('#outfits').innerHTML=priceGroups(OUTFITS,o=>{const key='o:'+o.id,own=!o.cost||owns(key);return`<button class="hat${cur===o.id?' on':''}${own?'':' locked'}" data-o="${o.id}"><canvas width="120" height="120" data-oc="${o.id}"></canvas><span>${o.n}</span><span class="p">${own?(cur===o.id?'Wearing':'Owned'):o.cost.toLocaleString()+' coins'}</span></button>`});
    $('#outfits').querySelectorAll('canvas').forEach(cv4=>{const x=cv4.getContext('2d');x.scale(2,2);drawBot(x,30,40,save.color,mkHat(hatBase(save.hat),hatColorOf(save.hat),cv4.dataset.oc),1,'ok',performance.now()/1000,false,save.visor)});
    $('#outfits').querySelectorAll('.hat').forEach(b=>b.onclick=()=>{const o=OUTFITS.find(x=>x.id===b.dataset.o);if((save.outfit||'')===o.id)return;tryGet('o:'+o.id,o,()=>{save.outfit=o.id});renderShop();sendAvatar()})}
   renderPhoto();refreshPub();renderCloud();
