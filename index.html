@@ -623,7 +623,8 @@ const BAD=['fuck','shit','bitch','dick','cock','pussy','ass','sex','porn','nigg'
 function cleanName(n){n=String(n||'').replace(/[^\w .\-]/g,'').trim().slice(0,15);if(!n)n='Robot';const l=n.toLowerCase().replace(/[^a-z]/g,'');if(BAD.some(b=>l.includes(b)))n='Robot'+Math.floor(rand(10,99));return n}
 
 /* quick chat phrases: {X} = picked robot */
-const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!'];
+const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.'];
+const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,14,6,15];
 const quickText=(p,x,r,y)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{Y}',y||'someone').replace('{R}',r||'a hallway'):null;
 
 /* ================= map ================= */
@@ -2015,6 +2016,8 @@ function botReact(spk,p,target,room,victim){
       botSay(r,line,d)}
   }else if(p===12&&room){
     const r=other([]);if(r){const was=bots.filter(b=>b!==r&&whereOf(b)===room);botSay(r,was.length?`${was[0].name} was in ${room} too. ${was[0].name}, did you see anything?`:pick([`${room}? Who else was near ${room}?`,`I wasn't near ${room}. Who was?`,`Okay. Anyone see someone leave ${room}?`]),d);if(was.length&&!was[0].human)botSay(was[0],was[0].glitch?`I didn't see anything. I was just passing through.`:pick([`I didn't see the zap. I was doing repairs.`,`I left ${room} before it happened.`]),d+1700)}
+  }else if(p===16){
+    const r=other([]);if(r)botSay(r,r.glitch?pick(['Cameras? I didn\'t see you at Security.','Then who did you see?']):pick(['Did you see anything on the cameras?','Who did you see on the cameras?','Okay. What rooms did it show?']),d);
   }else if(p===7){
     bots.slice(0).sort(()=>Math.random()-0.5).slice(0,2).forEach((b,i)=>botSay(b,b.glitch?`I was in ${pick(ROOMS).name}.`:`I was in ${whereOf(b)||'Central Hub'}.`,d+i*1500));
   }else if(p===9){
@@ -2148,7 +2151,7 @@ function renderQuick(){
     $('#qVictim').innerHTML=vict.map(e=>`<button class="qchip${e.id===G.qVict?' on':''}" data-id="${e.id}"><i style="--c:${e.color}"></i>${esc(e.name)}${e.alive?'':' ❄'}</button>`).join('');
     $('#qVictim').querySelectorAll('.qchip').forEach(b=>b.onclick=()=>{G.qVict=+b.dataset.id;draw()});
     const nm=G.qPick!=null?G.ents[G.qPick].name:'___',rn=ROOMS[G.qRoom].name,vn=G.qVict!=null&&G.ents[G.qVict]?G.ents[G.qVict].name:'___';
-    $('#qBtns').innerHTML=QUICK.map((p,i)=>`<button class="qb${i===12||i===13?' body':''}${i===15?' saw':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn).replace('{Y}',vn))}</button>`).join('');
+    $('#qBtns').innerHTML=QORDER.map(i=>[QUICK[i],i]).map(([p,i])=>`<button class="qb${i===12||i===13?' body':''}${i===15?' saw':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn).replace('{Y}',vn))}</button>`).join('');
     $('#qBtns').querySelectorAll('.qb').forEach(b=>b.onclick=()=>{act('chat',{p:+b.dataset.p,v:G.qPick,r:G.qRoom,y:G.qVict});b.disabled=true;setTimeout(()=>b.disabled=false,1600)});
   };
   draw();
