@@ -95,6 +95,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .repflag{position:absolute;top:4px;right:6px;font-size:14px;color:#ff8fb8;cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(0,0,0,.35)}.vc{position:relative}
 .zapset .zarrow{width:40px;padding:6px 0!important;font-size:15px}.zapset .zarrow:disabled{opacity:.35}.zapset .zval{min-width:64px;text-align:center;font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}
 .qb.saw{border-color:#ff4d6d!important}
+.meetmap{font:700 13px 'Chakra Petch',sans-serif;background:#123653;color:#e8f4f8;border:2px solid #3ad1b8;border-radius:10px;padding:6px 10px;margin-right:8px}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -532,6 +533,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <div class="vbar">
         <button class="big alt" id="voteBtn" disabled>Vote</button>
         <button class="big ghost" id="skipBtn">Skip vote</button>
+        <button class="meetmap" id="meetMap" aria-label="Open the map">🗺 Map</button>
         <span class="timer" id="meetTimer"></span>
       </div>
     </div>
@@ -1692,7 +1694,8 @@ function drawWorld(t){
   ctx.fillStyle='#0d2a3d';ctx.beginPath();ctx.arc(EMERG.x,EMERG.y,54,0,7);ctx.fill();
   ctx.fillStyle='#1a4566';ctx.beginPath();ctx.arc(EMERG.x,EMERG.y,48,0,7);ctx.fill();ctx.strokeStyle='#2d7a96';ctx.lineWidth=3;ctx.stroke();
   ctx.fillStyle=G.meetingUsed?'#5a3040':'#ff4d6d';ctx.beginPath();ctx.arc(EMERG.x,EMERG.y,15,0,7);ctx.fill();
-  const mine=new Set(me.glitch?[]:me.tasks.filter(id=>!me.done.has(id)));
+  let mine=new Set(me.glitch?[]:me.tasks.filter(id=>!me.done.has(id)));
+  if(G.tut&&!G.tut.done&&G.tut.step<=3)mine=new Set(mine.has(15)?[15]:[]);
   const myVent=me.inVent!=null?VENTS[me.inVent]:null;
   VENTS.forEach(v=>drawVent(ctx,v,t,!!myVent&&myVent.links.includes(v.id)));
   STATIONS.forEach(s=>drawStation(ctx,s,mine.has(s.id),t));
@@ -2140,7 +2143,7 @@ $('#againBtn').onclick=()=>{if(NET.mode!=='off'){G=null;$('#hud').hidden=true;$(
 $('#menuBtn').onclick=()=>{G=null;leaveNet();showMenu()};
 
 /* ================= menu, lobby, shop ================= */
-document.body.appendChild($('#sabUI'));document.body.appendChild($('#ventUI'));
+document.body.appendChild($('#sabUI'));document.body.appendChild($('#mapUI'));$('#meetMap').onclick=openMap;document.body.appendChild($('#ventUI'));
 function hideAll(){closeMap();try{$('#lb').hidden=true}catch(e){}$('#sabUI').hidden=true;$('#ventUI').hidden=true;try{closeIdea()}catch(e){}$('#coach').hidden=true;document.body.classList.remove('tutoring');['#tutAsk','#menu','#shop','#how','#task','#meeting','#eject','#end','#online','#lobby','#leaveConfirm'].forEach(s=>$(s).hidden=true)}
 function showMenu(){hideAll();$('#hud').hidden=true;$('#menu').hidden=false;renderDiff($('#diffMenu'),true);renderPal($('#palMenu'));
   $('#menuCoins').textContent=save.coins;$('#stWins').textContent=save.wins+' win'+(save.wins===1?'':'s');$('#stGames').textContent=save.games+' game'+(save.games===1?'':'s')}
@@ -2360,7 +2363,7 @@ const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0;
 const TUT=[
  {t:"Welcome to Bolt Squad! You're on the CREW. One robot is secretly the Glitch. Let's learn the basics.",next:"Let's go"},
  {t:()=>isTouch?"Put your finger anywhere on the screen and drag to walk around.":"Use the arrow keys or W A S D to walk around."},
- {t:"Follow the yellow arrow to the glowing yellow console. Stand next to it and tap USE.",hl:'#useBtn'},
+ {t:"Follow the yellow arrow to the glowing panel called Fix Hub Lights. Stand right next to it and tap USE.",hl:'#useBtn'},
  {t:"Finish the puzzle to fix it.",hide:true},
  {t:"Nice repair! Every fix fills the Repairs bar at the top. When it's full, the crew wins.",next:"Next"},
  {t:"Now be a detective. Walk right up to any robot and tap SCAN. If it froze someone lately, it reads HOT. You only get 2 scans a game, so choose carefully.",hl:'#scanBtn'},
