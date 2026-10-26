@@ -2279,7 +2279,13 @@ async function lbFlush(){
   if(save.lbQueue>0){clearTimeout(lbTimer);lbTimer=setTimeout(lbFlush,31500)}
 }
 if(save.lbPending){save.lbQueue=(save.lbQueue||0)+save.lbPending;save.lbPending=0;persist()}
-setTimeout(lbFlush,1500);
+// one-time carry-over: coins earned before the leaderboard existed (or that never got sent)
+async function lbCarry(){
+  if(save.lbCarry2||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
+  try{const r=await fetch(FS+'/lb_all/'+save.pid);let board=0;if(r.ok){const j=await r.json();board=+(j.fields?.coins?.integerValue||0)}else if(r.status!==404)return;
+    const carry=Math.max(0,Math.round((save.coins||0)-40-board-(save.lbQueue||0)));save.lbCarry2=true;if(carry>0)save.lbQueue=(save.lbQueue||0)+carry;persist();lbFlush()}catch(e){}
+}
+setTimeout(()=>{lbCarry();lbFlush()},1500);
 let lbPeriod='day';
 // my setup test games ran before 17:45 UTC on Oct 26; only Rock was a real player then
 function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T19:05:00Z'&&id!=='b4iuy2vbtghy'}
