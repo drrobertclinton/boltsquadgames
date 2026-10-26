@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><link rel="icon" type="image/png" href="/icon.png"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+<title>Bolt Squad Colors</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@500;600;700&display=swap">
+<style>
+/* Layout: one dark sub-base console; four palette bays stacked, each a row of robots on a deck */
+:root{--bg:#06141f;--panel:#0d2333;--deck:#123653;--line:#24506b;--fg:#e8f4f8;--muted:#8fb6c7;--accent:#ffd166;--pick:#3ad1b8;
+ --display:'Bungee','Arial Black',sans-serif;--body:'Chakra Petch',system-ui,sans-serif;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:20px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(28px,6vw,46px);margin:0;color:var(--accent);line-height:1}
+h1 span{color:#ff7a59}
+.lede{margin:0;color:var(--muted);max-width:62ch;line-height:1.5}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.controls label{display:flex;gap:8px;align-items:center;font-weight:600}
+.controls select{font:inherit;background:var(--deck);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.toggle{appearance:none;width:44px;height:24px;border-radius:12px;background:var(--line);position:relative;cursor:pointer;flex:none}
+.toggle::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--fg);transition:left .15s}
+.toggle:checked{background:var(--pick)}.toggle:checked::after{left:23px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.bay{background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:10px}
+.bay.chosen{border-color:var(--pick);box-shadow:0 0 0 3px rgba(58,209,184,.25)}
+.bayhead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;justify-content:space-between}
+.bayhead h2{font-family:var(--display);font-weight:400;font-size:20px;margin:0;letter-spacing:.02em}
+.bayhead p{margin:0;color:var(--muted);flex:1 1 280px}
+.pickbtn{font:700 14px var(--body);background:var(--accent);color:#2a1a00;border:0;border-radius:10px;padding:8px 14px;cursor:pointer}
+.bay.chosen .pickbtn{background:var(--pick);color:#032a24}
+.deck{overflow-x:auto;background:var(--deck);border-radius:10px;padding:8px 6px}
+.robots{display:grid;grid-template-columns:repeat(6,minmax(84px,1fr));gap:4px;min-width:520px}
+.bot{display:grid;justify-items:center;gap:2px;padding:4px 2px;border-radius:8px;border:2px solid transparent;background:none;color:var(--fg);font:inherit;cursor:pointer}
+.bot.fav{border-color:var(--accent)}
+.bot canvas{width:72px;height:80px}
+.tag{font-weight:700;font-size:13px;text-align:center;line-height:1.1}
+.tag small{display:block;font-weight:500;color:var(--muted);font-size:11px}
+.names .tag::before{content:attr(data-letter);display:inline-block;min-width:18px;margin-right:4px;border-radius:4px;background:var(--bg);color:var(--fg);font-size:11px;padding:1px 3px}
+#app:not(.names) .tag{visibility:hidden}
+.summary{background:var(--panel);border:1px dashed var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.summary b{color:var(--accent)}
+.summary p{margin:0;line-height:1.45}
+.sim-deut .deck{filter:url(#deut)}.sim-prot .deck{filter:url(#prot)}.sim-trit .deck{filter:url(#trit)}
+.sim-mono .deck{filter:grayscale(1)}
+@media (max-width:640px){.robots{grid-template-columns:repeat(4,minmax(76px,1fr));min-width:0}}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+ <filter id="deut"><feColorMatrix type="matrix" values="0.367 0.861 -0.228 0 0  0.280 0.673 0.047 0 0  -0.012 0.043 0.969 0 0  0 0 0 1 0"/></filter>
+ <filter id="prot"><feColorMatrix type="matrix" values="0.152 1.053 -0.205 0 0  0.115 0.786 0.099 0 0  -0.004 -0.048 1.052 0 0  0 0 0 1 0"/></filter>
+ <filter id="trit"><feColorMatrix type="matrix" values="1.256 -0.077 -0.179 0 0  -0.078 0.931 0.148 0 0  0.005 0.691 0.304 0 0  0 0 0 1 0"/></filter>
+</svg>
+<div class="wrap" id="app">
+ <header style="display:grid;gap:8px">
+  <h1>BOLT <span>SQUAD</span> COLORS</h1>
+  <p class="lede">Knox, here are four color sets for the robots. Tap <b>Pick this set</b> on the one you like best. You can also tap single robots to star your favorite colors, even from different sets.</p>
+ </header>
+ <div class="controls">
+  <label for="nameTags"><input type="checkbox" class="toggle" id="nameTags" checked> Color name tags</label>
+  <label for="sim">See it like
+   <select id="sim">
+    <option value="">normal eyes</option>
+    <option value="deut">red-green color blind (most common)</option>
+    <option value="prot">red-weak color blind</option>
+    <option value="trit">blue-yellow color blind</option>
+    <option value="mono">no color at all</option>
+   </select></label>
+ </div>
+ <div id="bays" style="display:grid;gap:16px"></div>
+ <div class="summary" id="summary" aria-live="polite"></div>
+</div>
+<script>
+const SETS=[
+ {id:'primary',n:'Primary Pop',d:'Strong primary colors first: true red, blue and yellow, plus green and lime as two different colors.',
+  c:[['Red','#e63946'],['Blue','#2f6bff'],['Yellow','#ffd60a'],['Green','#2a9d3f'],['Lime','#a6e22e'],['Orange','#ff8c1a'],['Purple','#8e44ec'],['Pink','#ff5da2'],['Cyan','#22d3ee'],['White','#eef2f6'],['Black','#2b2d42'],['Brown','#8b5a2b']]},
+ {id:'neon',n:'Neon Arcade',d:'Super bright glowing colors that pop in the dark hallways.',
+  c:[['Neon Red','#ff2e4d'],['Electric Blue','#2979ff'],['Neon Yellow','#f5ff3b'],['Green','#00c853'],['Lime','#b2ff59'],['Hot Orange','#ff6d00'],['Violet','#aa00ff'],['Hot Pink','#ff4fd8'],['Aqua','#18ffff'],['Snow','#ffffff'],['Shadow','#1f1f2e'],['Mint','#64ffda']]},
+ {id:'classic',n:'Sea Base (now)',d:'The colors the game has today. Softer and more ocean-like.',
+  c:[['Coral','#ff7a59'],['Teal','#3ad1b8'],['Sunshine','#ffd166'],['Lavender','#c77dff'],['Sky','#4cc9f0'],['Lime','#9ef01a'],['Pink','#ff5d8f'],['Silver','#c9d6df'],['Copper','#d9822b'],['Indigo','#5a67d8']]},
+ {id:'safe',n:'Easy to Tell Apart',d:'Picked so people who are color blind can still tell most robots apart, and every color has a letter.',
+  c:[['Orange','#e69f00'],['Sky Blue','#56b4e9'],['Sea Green','#009e73'],['Yellow','#f0e442'],['Blue','#0072b2'],['Red','#d55e00'],['Rose','#cc79a7'],['Black','#222222'],['White','#f5f5f5'],['Gray','#9aa5b1'],['Lime','#a6e22e'],['Brown','#8b5a2b']]},
+];
+const HATS=['antenna','none','antenna','none'];
+let state={set:null,fav:[]};
+try{const s=JSON.parse(localStorage.getItem('bs_colors'));if(s)state=Object.assign(state,s)}catch(e){}
+const save=()=>{try{localStorage.setItem('bs_colors',JSON.stringify(state))}catch(e){}};
+function shade(h,a){const n=parseInt(h.slice(1),16);let r=n>>16,g=n>>8&255,b=n&255;const t=a<0?0:255,p=Math.abs(a);return`rgb(${Math.round(r+(t-r)*p)},${Math.round(g+(t-g)*p)},${Math.round(b+(t-b)*p)})`}
+function rr(c,x,y,w,h,r){c.beginPath();c.roundRect(x,y,w,h,r)}
+function drawBot(cv,col,i,t){
+ const c=cv.getContext('2d'),s=2;c.setTransform(s,0,0,s,0,0);c.clearRect(0,0,72,80);
+ c.translate(36,46+Math.sin(t*2+i)*1.2);const f=i%2?-1:1;c.scale(f,1);
+ c.fillStyle='rgba(0,0,0,.35)';c.beginPath();c.ellipse(0,22,16,4,0,0,7);c.fill();
+ c.fillStyle=shade(col,-.35);rr(c,-11,12,8,9,2);c.fill();rr(c,3,12,8,9,2);c.fill();
+ [-19,19].forEach(x=>{c.fillStyle='#a0b4c3';c.beginPath();c.arc(x,-4,4.5,0,7);c.fill()});
+ c.fillStyle=col;rr(c,-16,-18,32,31,5);c.fill();
+ c.strokeStyle='rgba(0,0,0,.35)';c.lineWidth=1;rr(c,-16,-18,32,31,5);c.stroke();
+ c.fillStyle=shade(col,-.15);rr(c,-16,6,32,7,4);c.fill();
+ c.fillStyle='#0a1a2a';rr(c,-12,-14,24,17,4);c.fill();
+ c.fillStyle='#5ff0ff';[-5,5].forEach(x=>{c.beginPath();c.arc(x,-6,3.2,0,7);c.fill()});
+ c.strokeStyle='#5ff0ff';c.lineWidth=1.4;c.beginPath();c.arc(0,-3,4,0.35,2.8);c.stroke();
+ if(i%3!==1){c.strokeStyle='#cfe4ec';c.lineWidth=2;c.beginPath();c.moveTo(2,-18);c.lineTo(2,-29);c.stroke();c.fillStyle='#ffd166';c.beginPath();c.arc(2,-31,3.5,0,7);c.fill()}
+ c.setTransform(1,0,0,1,0,0);
+}
+const bots=[];
+function render(){
+ const box=document.getElementById('bays');box.innerHTML='';bots.length=0;
+ SETS.forEach(S=>{
+  const b=document.createElement('section');b.className='bay'+(state.set===S.id?' chosen':'');
+  b.innerHTML=`<div class="bayhead"><h2>${S.n}</h2><p>${S.d}</p><button class="pickbtn" type="button">${state.set===S.id?'Your pick ✓':'Pick this set'}</button></div><div class="deck"><div class="robots"></div></div>`;
+  b.querySelector('.pickbtn').onclick=()=>{state.set=S.id;save();render()};
+  const row=b.querySelector('.robots');
+  S.c.forEach(([name,hex],i)=>{
+   const key=S.id+':'+name;const btn=document.createElement('button');btn.type='button';btn.className='bot'+(state.fav.includes(key)?' fav':'');
+   btn.setAttribute('aria-label',`${name} robot from ${S.n}`+(state.fav.includes(key)?', starred':''));
+   const letter=name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+   btn.innerHTML=`<canvas width="144" height="160"></canvas><span class="tag" data-letter="${letter}">${state.fav.includes(key)?'★ ':''}${name}<small>${hex}</small></span>`;
+   btn.onclick=()=>{const k=state.fav.indexOf(key);k<0?state.fav.push(key):state.fav.splice(k,1);save();render()};
+   row.appendChild(btn);bots.push([btn.querySelector('canvas'),hex,i]);
+  });
+  box.appendChild(b);
+ });
+ const set=SETS.find(s=>s.id===state.set);
+ document.getElementById('summary').innerHTML=`<p><b>Set picked:</b> ${set?set.n:'none yet'}</p><p><b>Starred colors:</b> ${state.fav.length?state.fav.map(k=>k.split(':')[1]).join(', '):'none yet'}</p><p>All four sets are in the game now. Pick yours under Robot colors on the main menu, and turn on Color names there too.</p>`;
+ applyTags();
+}
+function applyTags(){document.getElementById('app').classList.toggle('names',document.getElementById('nameTags').checked)}
+document.getElementById('nameTags').onchange=applyTags;
+document.getElementById('sim').onchange=e=>{const a=document.getElementById('app');a.className=a.className.replace(/\bsim-\w+/g,'').trim();if(e.target.value)a.classList.add('sim-'+e.target.value)};
+render();
+const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function loop(t){bots.forEach(([cv,h,i])=>drawBot(cv,h,i,still?0:t/1000));if(!still)requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script>
+
+</body></html>
