@@ -403,8 +403,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
   <!-- LEAVE CONFIRM -->
   <div class="screen dim" id="leaveConfirm" hidden>
     <div class="panel" style="max-width:380px">
-      <h2>Leave the squad?</h2>
-      <p class="note">If you're the squad leader, the game ends for everyone.</p>
+      <h2 id="leaveTitle">Leave the squad?</h2>
+      <p class="note" id="leaveNote">If you're the squad leader, the game ends for everyone.</p>
       <div class="row2"><button class="big" id="leaveYes">Leave</button><button class="big ghost" id="leaveNo">Stay</button></div>
     </div>
   </div>
@@ -1811,7 +1811,8 @@ function hud(){
 let toastTimer=null;
 function toast(msg,sec=2.3){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,sec*1000)}
 $('#useBtn').onclick=doUse;$('#repBtn').onclick=doReport;$('#scanBtn').onclick=doScanZap;$('#sabBtn').onclick=doSabotage;
-$('#quitBtn').onclick=()=>{closeTask();$('#coach').hidden=true;if(NET.mode!=='off'){$('#leaveConfirm').hidden=false;return}G=null;showMenu()};
+function askLeave(){const sq=NET.mode!=='off';$('#leaveTitle').textContent=sq?'Leave the squad?':'Leave this game?';$('#leaveNote').textContent=sq?(NET.mode==='host'?"You're the squad leader, so the game ends for everyone.":'You can join again with the squad code.'):"You'll lose this round and go back to the menu.";$('#leaveConfirm').hidden=false}
+$('#quitBtn').onclick=()=>{closeTask();closeMap();$('#sabUI').hidden=true;askLeave()};
 $('#leaveYes').onclick=()=>{$('#leaveConfirm').hidden=true;G=null;leaveNet();showMenu()};
 $('#leaveNo').onclick=()=>{$('#leaveConfirm').hidden=true};
 
@@ -2216,7 +2217,7 @@ $('#openLb').onclick=()=>{$('#lb').hidden=false;renderLb()};$('#lbClose').onclic
 $('#openHow').onclick=()=>{$('#how').hidden=false};
 $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
-$('#lobbyLeave').onclick=()=>{leaveNet();showMenu()};
+$('#lobbyLeave').onclick=askLeave;
 $('#lobbyStart').onclick=()=>{if(NET.mode==='host'&&NET.lobby.length){hideAll();newGame('online')}};
 $('#copyCode').onclick=()=>{const c=NET.code||'';try{navigator.clipboard.writeText(c).then(()=>toast('Code copied: '+c),()=>toast('Squad code: '+c))}catch(e){toast('Squad code: '+c)}};
 function onlineError(msg){hideAll();$('#hud').hidden=true;$('#online').hidden=false;$('#onErr').textContent=msg}
