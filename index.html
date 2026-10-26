@@ -154,7 +154,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .ventui{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:190px;display:grid;gap:6px;background:rgba(10,20,32,.9);border:2px solid #ff4d6d;border-radius:12px;padding:10px;z-index:5;min-width:170px}
 .ventui b{font-family:Bungee,sans-serif;font-weight:400;color:#ff4d6d;font-size:13px}
 .ventui button{font:700 14px 'Chakra Petch',sans-serif;background:#2a1520;color:#fff;border:1px solid #ff4d6d;border-radius:8px;padding:8px 10px;text-align:left}
-.sabui{bottom:280px}
+.ventui{position:fixed!important;left:50%!important;right:auto!important;top:50%!important;bottom:auto!important;transform:translate(-50%,-50%);z-index:60!important;min-width:220px}
+.sabui{}
 .ventui button.out{background:#ff4d6d;color:#2a0510}
 .act.venting{background:#ff4d6d}
 .wcol.l .wire{border-radius:0 14px 14px 0}
@@ -572,8 +573,9 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 
 /* ================= save data ================= */
 const SAVE_KEY='boltsquad_v1';
-let save={coins:40,cbTags:false,palette:'classic',owned:['none','antenna'],color:'#ff7a59',hat:'antenna',visor:'#5ff0ff',name:'Knox',wins:0,games:0,points:0,diff:'normal'};
+let save={coins:40,cbTags:false,palette:'classic',owned:['none','antenna'],color:'#ff7a59',hat:'antenna',visor:'#5ff0ff',name:'',wins:0,games:0,points:0,diff:'normal'};
 try{const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s)save=Object.assign(save,s)}catch(e){}
+if(!save.name||(save.name==='Knox'&&!save.nameSet&&!save.games)){save.name='Robot'+(10+Math.floor(Math.random()*90))}
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}
 
 const CSETS={
@@ -1527,7 +1529,7 @@ function drawSeaBack(c,t){
     const bg=c.createRadialGradient(x-4*s,y-10*s,1,x,y-4*s,20*s);bg.addColorStop(0,`rgba(255,255,255,.85)`);bg.addColorStop(0.4,`rgba(${R},${G2},${B},.7)`);bg.addColorStop(1,`rgba(${R},${G2},${B},.25)`);c.fillStyle=bg;
     c.beginPath();c.ellipse(x,y,(17+pl*2)*s,(14-pl*2)*s,0,Math.PI,0);c.quadraticCurveTo(x,y+6*s,x-(17+pl*2)*s,y);c.fill()});
 }
-function drawBubble(c,x,y,r,a){if(a<=0||!inV(x,y,r+4))return;c.globalAlpha=Math.min(1,a);c.drawImage(bubbleSpr,x-r,y-r,r*2,r*2);c.globalAlpha=1}
+function drawBubble(c,x,y,r,a){if(a<=0||!inV(x,y,r+4)||inAnyRoom(x,y,r+6))return;c.globalAlpha=Math.min(1,a);c.drawImage(bubbleSpr,x-r,y-r,r*2,r*2);c.globalAlpha=1}
 let lastBubT=0;
 function drawBubbles(c,t){
   const dt=Math.min(0.05,Math.max(0,t-lastBubT));lastBubT=t;
@@ -1537,7 +1539,7 @@ function drawBubbles(c,t){
   if(Math.random()<dt*0.8){const x=SEA.OX+Math.random()*SEA.W,y=SEA.OY+Math.random()*SEA.H;for(let i=0;i<14;i++)LIFE.burst.push({x:x+(Math.random()-0.5)*30,y,vy:40+Math.random()*60,r:2+Math.random()*6,life:3+Math.random()*2,p:Math.random()*6})}
   LIFE.burst=LIFE.burst.filter(b=>(b.life-=dt)>0);LIFE.burst.forEach(b=>{b.y-=b.vy*dt;drawBubble(c,b.x+Math.sin(t*3+b.p)*6,b.y,b.r,Math.min(1,b.life))});
   // bubble trails from robots that are moving
-  if(G)G.ents.forEach(e=>{if(!e.moving||e.inVent!=null)return;if(e!==G.me&&!(e.alive||!G.me.alive))return;e._bt=(e._bt||0)-dt;if(e._bt<=0){e._bt=0.09+Math.random()*0.08;if(LIFE.trail.length<220)LIFE.trail.push({x:e.x-e.face*10+(Math.random()-0.5)*8,y:e.y-12,r:1.5+Math.random()*3,life:1.4,p:Math.random()*6})}});
+  if(false)G.ents.forEach(e=>{if(!e.moving||e.inVent!=null)return;if(e!==G.me&&!(e.alive||!G.me.alive))return;e._bt=(e._bt||0)-dt;if(e._bt<=0){e._bt=0.09+Math.random()*0.08;if(LIFE.trail.length<220)LIFE.trail.push({x:e.x-e.face*10+(Math.random()-0.5)*8,y:e.y-12,r:1.5+Math.random()*3,life:1.4,p:Math.random()*6})}});
   LIFE.trail=LIFE.trail.filter(b=>(b.life-=dt)>0);LIFE.trail.forEach(b=>{b.y-=34*dt;drawBubble(c,b.x+Math.sin(t*5+b.p)*3,b.y,b.r,b.life*0.8)});
 }
 function drawSeaFront(c,vw,vh,t){
@@ -1546,7 +1548,6 @@ function drawSeaFront(c,vw,vh,t){
   c.restore();
   c.fillStyle='rgba(210,240,255,.35)';
   LIFE.snow.forEach(p=>{const x=((p.x*vw+Math.sin(t*0.4+p.p)*20-camX*zoom*0.3)%vw+vw)%vw,y=((p.y*vh-t*p.v-camY*zoom*0.3)%vh+vh)%vh;c.beginPath();c.arc(x,y,p.s,0,7);c.fill()});
-  LIFE.front.forEach(b=>{const x=((b.x*vw+Math.sin(t*1.3+b.p)*14-camX*zoom*0.55)%vw+vw)%vw,y=((b.y*(vh+60)-t*b.v-camY*zoom*0.55)%(vh+60)+vh+60)%(vh+60)-30;drawBubble(c,x,y,b.r,0.75)});
 }
 
 function extraDecor(d){
@@ -2115,7 +2116,8 @@ $('#againBtn').onclick=()=>{if(NET.mode!=='off'){G=null;$('#hud').hidden=true;$(
 $('#menuBtn').onclick=()=>{G=null;leaveNet();showMenu()};
 
 /* ================= menu, lobby, shop ================= */
-function hideAll(){closeMap();try{$('#lb').hidden=true}catch(e){}try{closeIdea()}catch(e){}$('#coach').hidden=true;document.body.classList.remove('tutoring');['#tutAsk','#menu','#shop','#how','#task','#meeting','#eject','#end','#online','#lobby','#leaveConfirm'].forEach(s=>$(s).hidden=true)}
+document.body.appendChild($('#sabUI'));document.body.appendChild($('#ventUI'));
+function hideAll(){closeMap();try{$('#lb').hidden=true}catch(e){}$('#sabUI').hidden=true;$('#ventUI').hidden=true;try{closeIdea()}catch(e){}$('#coach').hidden=true;document.body.classList.remove('tutoring');['#tutAsk','#menu','#shop','#how','#task','#meeting','#eject','#end','#online','#lobby','#leaveConfirm'].forEach(s=>$(s).hidden=true)}
 function showMenu(){hideAll();$('#hud').hidden=true;$('#menu').hidden=false;renderDiff($('#diffMenu'),true);renderPal($('#palMenu'));
   $('#menuCoins').textContent=save.coins;$('#stWins').textContent=save.wins+' win'+(save.wins===1?'':'s');$('#stGames').textContent=save.games+' game'+(save.games===1?'':'s')}
 let afterTut=null;
@@ -2174,11 +2176,13 @@ async function lbAdd(n){
   if(save.lbPending){const p=save.lbPending;save.lbPending=0;persist();setTimeout(()=>lbAdd(p),35000)}
 }
 let lbPeriod='day';
+// test games from setup day, not real players
+const LB_HIDE=new Set(['zzsetuptest','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
 async function renderLb(){
   const box=$('#lbList');box.innerHTML='<li><span class="empty">Loading...</span></li>';
   $('#lbTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===lbPeriod));
   try{const r=await fetch(FS+':runQuery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:lbKeys()[lbPeriod]}],orderBy:[{field:{fieldPath:'coins'},direction:'DESCENDING'}],limit:100}})});
-    if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!x.document.name.endsWith('/zzsetuptest')).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
+    if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!LB_HIDE.has(x.document.name.split('/').pop())).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
     box.innerHTML=rows.length?rows.map((p,i)=>`<li class="${p.id===save.pid?'me':''}"><span class="rk">${i+1}</span><span>${esc(p.name)}${p.id===save.pid?' (you)':''}</span><span class="cn2">${p.coins.toLocaleString()}</span></li>`).join(''):'<li><span class="empty">No coins yet. Play a game to get on the board!</span></li>';
   }catch(e){box.innerHTML='<li><span class="empty">Could not load the leaderboard. Check your internet.</span></li>'}
 }
@@ -2219,7 +2223,7 @@ function renderLobby(){
   $('#lobbyStatus').textContent=host?'Tell your friends to open boltsquadgames.com, tap Play with Friends, then Join and type this code.':'You\'re in! Customize your robot while you wait for the squad leader to start.';
 }
 $('#lobbyCustom').onclick=()=>{shopFromLobby=true;renderShop();$('#lobby').hidden=true;$('#shop').hidden=false};
-$('#nameIn').addEventListener('input',e=>{const v=e.target.value.trim();save.name=v?cleanName(v):'Knox';persist()});
+$('#nameIn').addEventListener('input',e=>{const v=e.target.value.trim();if(v){save.name=cleanName(v);save.nameSet=true;persist()}});
 let shopFromLobby=false;
 function owns(key){return save.owned.includes(key)}
 function nextReward(){return REWARDS.find(r=>!owns(r.key)&&(save.points||0)<r.at)}

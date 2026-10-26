@@ -35,11 +35,13 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
 </head>
 <body>
 <div class="wrap">
-  <div class="bar"><h1>Bolt Squad Review</h1><div><span id="who"></span> <button id="signin">Sign in with Google</button> <button id="signout" hidden>Sign out</button></div></div>
-  <p id="msg" class="empty">Only Robert's Google account can use this page.</p>
+  <div class="bar"><h1>Bolt Squad Review</h1><div><span id="who"></span> <button id="signout" hidden>Sign out</button></div></div>
+  <section id="login"><h2>Sign in</h2><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input id="email" type="email" value="robert@vilasi.co" aria-label="Email" style="font:inherit;padding:9px 12px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--fg);min-width:240px"><button id="sendLink" class="ok">Email me a sign-in link</button><span class="empty">or</span><button id="signin">Sign in with Google</button></div><p class="empty" id="linkMsg" style="margin:8px 0 0"></p></section>
+  <p id="msg" class="empty">Only Robert's accounts can use this page.</p>
   <section id="secReported" hidden><h2>Reported pictures</h2><div class="grid" id="reported"></div></section>
   <section id="secPending" hidden><h2>Pictures waiting for approval</h2><div class="grid" id="pending"></div></section>
   <section id="secApproved" hidden><h2>Approved pictures</h2><div class="grid" id="approved"></div></section>
+  <section id="secLb" hidden><h2>Leaderboard players</h2><p class="empty" style="margin:0 0 8px">Remove takes a player off today, this week, this month and all time.</p><div class="ideas" id="lbAdmin"></div></section>
   <section id="secIdeas" hidden><h2>Idea Box</h2><div class="ideas" id="ideas"></div></section>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -48,16 +50,20 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
 <script>
 firebase.initializeApp({apiKey:"AIzaSyAWYvqOJkjm1zXFGVJmnnu7kUYF9fLbfSE",authDomain:"bolt-squad.firebaseapp.com",projectId:"bolt-squad",appId:"1:294046723169:web:74598fa66c27edc30f8e20"});
 const auth=firebase.auth(),db=firebase.firestore(),$=s=>document.querySelector(s);
-const ADMIN='drrobertclinton@gmail.com';
+const ADMINS=['drrobertclinton@gmail.com','robert@vilasi.co'];
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const when=ts=>ts&&ts.toDate?ts.toDate().toLocaleString():'';
 $('#signin').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{$('#msg').textContent='Sign-in did not finish: '+e.message});
 $('#signout').onclick=()=>auth.signOut();
+const linkSettings={url:location.origin+location.pathname,handleCodeInApp:true};
+$('#sendLink').onclick=async()=>{const em=$('#email').value.trim().toLowerCase();if(!em)return;try{await auth.sendSignInLinkToEmail(em,linkSettings);try{localStorage.setItem('bsReviewEmail',em)}catch(e){}$('#linkMsg').textContent='Check '+em+' for a sign-in link. Open it on this same device.'}catch(e){$('#linkMsg').textContent='Could not send the link: '+e.message}};
+if(auth.isSignInWithEmailLink(location.href)){let em=null;try{em=localStorage.getItem('bsReviewEmail')}catch(e){}em=em||$('#email').value.trim();auth.signInWithEmailLink(em,location.href).then(()=>history.replaceState(null,'',location.pathname)).catch(e=>{$('#linkMsg').textContent='That link did not work: '+e.message})}
+function lbKeys(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());const[y,m,d]=p.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d)),dow=(dt.getUTCDay()+6)%7;dt.setUTCDate(dt.getUTCDate()-dow+3);const wy=dt.getUTCFullYear(),jan4=new Date(Date.UTC(wy,0,4)),wk=1+Math.round(((dt-jan4)/864e5-3+((jan4.getUTCDay()+6)%7))/7);return['lb_day_'+p,'lb_week_'+wy+'-W'+String(wk).padStart(2,'0'),'lb_month_'+p.slice(0,7),'lb_all']}
 auth.onAuthStateChanged(u=>{
-  const ok=u&&u.email===ADMIN;
+  const ok=u&&ADMINS.includes((u.email||'').toLowerCase());$('#login').hidden=!!u;
   $('#signin').hidden=!!u;$('#signout').hidden=!u;$('#who').textContent=u?u.email:'';
-  ['#secReported','#secPending','#secApproved','#secIdeas'].forEach(s=>$(s).hidden=!ok);
-  $('#msg').textContent=!u?"Only Robert's Google account can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old.':'This account cannot review pictures.';
+  ['#secReported','#secPending','#secApproved','#secLb','#secIdeas'].forEach(s=>$(s).hidden=!ok);
+  $('#msg').textContent=!u?"Only Robert's accounts can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old.':'This account cannot review pictures.';
   if(ok)load();
 });
 async function setStatus(id,ver,status,clearReports){
@@ -81,6 +87,10 @@ async function load(){
   all.forEach(d=>{const f=d.data();if(f.status==='denied'||d.id.startsWith('zztest'))return;if(f.reports>0)rep.push(d);else if(f.status==='pending')pen.push(d);else if(f.status==='approved')app.push(d)});
   const fill=(box,list,mode,emptyText)=>{box.innerHTML='';list.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0)).forEach(d=>box.appendChild(card(d,mode)));if(!list.length)box.innerHTML=`<p class="empty">${emptyText}</p>`};
   fill($('#reported'),rep,'reported','Nothing reported.');fill($('#pending'),pen,'pending','No pictures waiting.');fill($('#approved'),app,'approved','None approved yet.');
+  const lb=await db.collection('lb_all').orderBy('coins','desc').limit(200).get(),la=$('#lbAdmin');la.innerHTML='';
+  lb.forEach(d=>{const f=d.data(),el=document.createElement('div');el.className='idea';el.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span><b>${esc(f.name)}</b> · ${(f.coins||0).toLocaleString()} coins</span><button class="no">Remove</button></div><div class="meta">Last game ${when(f.at)} · id ${esc(d.id)}</div>`;
+    el.querySelector('button').onclick=async e=>{e.target.disabled=true;const b=db.batch();lbKeys().forEach(k=>b.delete(db.collection(k).doc(d.id)));await b.commit();el.remove()};la.appendChild(el)});
+  if(!la.children.length)la.innerHTML='<p class="empty">No players yet.</p>';
   const ideas=await db.collection('ideas').orderBy('at','desc').limit(200).get();
   const ib=$('#ideas');ib.innerHTML='';
   ideas.forEach(d=>{const f=d.data();if(d.id==='test-setup-1')return;const el=document.createElement('div');el.className='idea';el.innerHTML=`<div>${esc(f.text)}</div><div class="meta">${esc(f.from)} · ${when(f.at)}</div>`;ib.appendChild(el)});
