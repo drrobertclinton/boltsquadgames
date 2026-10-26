@@ -2357,10 +2357,15 @@ async function lbCarry(){
   try{const r=await fetch(FS+'/lb_all/'+save.pid);let board=0;if(r.ok){const j=await r.json();board=+(j.fields?.coins?.integerValue||0)}else if(r.status!==404)return;
     const carry=Math.max(0,Math.round((save.coins||0)-40-board-(save.lbQueue||0)));save.lbCarry2=true;if(carry>0)save.lbQueue=(save.lbQueue||0)+carry;persist();lbFlush()}catch(e){}
 }
-setTimeout(()=>{lbCarry();lbFlush()},1500);
+async function lbHeal(){
+  if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||(save.lbQueue||0)>0)return;
+  try{const r=await fetch(FS+'/lb_all/'+save.pid);if(r.status!==404)return;
+    const earned=Math.max(save.lbSent||0,Math.round((save.coins||0)-40));if(earned>0){save.lbSent=0;save.lbQueue=earned;save.lbLast=0;persist();lbFlush()}}catch(e){}
+}
+setTimeout(()=>{lbCarry();lbFlush();setTimeout(lbHeal,2500)},1500);
 let lbPeriod='day';
 // my setup test games ran before 17:45 UTC on Oct 26; only Rock was a real player then
-function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T19:05:00Z'&&id!=='b4iuy2vbtghy'}
+function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return false}
 // test games from setup day, not real players
 const LB_HIDE=new Set(['zzsetuptest','zzlbprobe01','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
 async function renderLb(quiet){
