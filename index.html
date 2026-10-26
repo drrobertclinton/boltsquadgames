@@ -102,7 +102,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .edrow{display:flex;gap:10px;align-items:center;margin-bottom:10px}.edrow span{font-weight:700;font-size:13px;color:var(--muted)}.edrow input{flex:1;accent-color:#ffd166}.edrow .big{padding:8px 14px;font-size:18px}
 .edfilters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:12px}.edfilters button{border:2px solid var(--line);background:var(--deep);color:inherit;border-radius:10px;padding:4px 2px;font:700 11px 'Chakra Petch',sans-serif;display:grid;gap:3px;justify-items:center}.edfilters button.on{border-color:var(--sun)}.edfilters canvas{width:40px;height:40px;border-radius:8px}
 .savecode{font:400 26px Bungee,sans-serif;letter-spacing:.12em;color:var(--sun);text-align:center;background:#081a2a;border-radius:10px;padding:8px}
-#restoreBox{display:grid;gap:8px}#restoreIn{font:600 18px 'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.1em;padding:10px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--ink);text-align:center}
+#restoreBox,#mergeBox{display:grid;gap:8px}#mergeBox[hidden],#restoreBox[hidden]{display:none}#mergeIn{font:600 18px 'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.1em;padding:10px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--ink);text-align:center}#restoreIn{font:600 18px 'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.1em;padding:10px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--ink);text-align:center}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -163,12 +163,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .camnote{margin:0;font-size:12px;color:#8fb6c7}
 html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
 .maphead button{min-width:44px;min-height:44px;font-size:20px!important}
-.mapbox::after{content:'Tap anywhere to close';display:block;text-align:center;font-size:12px;color:#8fb6c7}
+.mapbox::after{content:'Tap the map for the small map. Tap HIDE MAP to hide all maps.';display:block;text-align:center;font-size:12px;color:#8fb6c7}
 .mapbtn{width:auto!important;padding:0 10px!important;font:400 12px Bungee,sans-serif!important;letter-spacing:.04em}
 .mapui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,22,.6);z-index:90;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
-.mapbox{background:#0a2236;border:2px solid #3ad1b8;border-radius:16px;padding:10px;width:min(100%,760px);max-height:100%;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.mapbox{background:#0a2236;border:2px solid #3ad1b8;border-radius:16px;padding:10px;width:min(100%,500px);max-height:78dvh;display:flex;flex-direction:column;gap:6px;overflow:hidden}
 .maphead{display:flex;justify-content:space-between;align-items:center}.maphead b{font:400 15px Bungee,sans-serif;color:#3ad1b8}.maphead button{background:#123653;border:1px solid #3ad1b8;color:#fff;border-radius:8px;width:34px;height:34px;font-size:16px}
-#mapCv{display:block;width:100%;height:auto;max-height:calc(100dvh - 120px);object-fit:contain;border-radius:10px;background:#0b3a50;min-height:0}
+#mapCv{display:block;width:100%;height:auto;max-height:calc(78dvh - 110px);object-fit:contain;border-radius:10px;background:#0b3a50;min-height:0}
 .maplegend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;font-weight:600;color:#cfe4ec}.maplegend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .ventui{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:190px;display:grid;gap:6px;background:rgba(10,20,32,.9);border:2px solid #ff4d6d;border-radius:12px;padding:10px;z-index:5;min-width:170px}
 .ventui b{font-family:Bungee,sans-serif;font-weight:400;color:#ff4d6d;font-size:13px}
@@ -335,7 +335,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
     <div id="tasklist"></div>
     <canvas id="miniMap" width="360" height="280" aria-label="Mini map, tap to make it bigger"></canvas>
     <div class="camui" id="camUI" hidden><div class="cambox"><div class="maphead"><b>SECURITY CAMERAS</b><button id="camClose" aria-label="Stop watching">✕</button></div><canvas id="camCv" width="720" height="480"></canvas><p class="camnote">Live feeds. You can't move while you watch.</p></div></div>
-    <div class="mapui" id="mapUI" hidden><button id="mapToggle" class="maptog">CLOSE MAP</button><div class="mapbox"><div class="maphead"><b>TRENCH BASE MAP</b><button id="mapClose" aria-label="Close map">✕</button></div><canvas id="mapCv" width="720" height="560"></canvas><div class="maplegend"><span><i style="background:#ffd166"></i>You</span><span><i style="background:#ffb703;border-radius:3px"></i>Your repairs</span><span><i style="background:#ff4d6d"></i>Meeting table</span><span id="mapVentKey"><i style="background:#6b8496;border-radius:2px"></i>Vents</span></div></div></div>
+    <div class="mapui" id="mapUI" hidden><button id="mapToggle" class="maptog">CLOSE MAP</button><div class="mapbox"><div class="maphead"><b>TRENCH BASE MAP</b></div><canvas id="mapCv" width="720" height="560"></canvas><div class="maplegend"><span><i style="background:#ffd166"></i>You</span><span><i style="background:#ffb703;border-radius:3px"></i>Your repairs</span><span><i style="background:#ff4d6d"></i>Meeting table</span><span id="mapVentKey"><i style="background:#6b8496;border-radius:2px"></i>Vents</span></div></div></div>
     <div id="banner" hidden></div>
     <div class="touchhint" id="touchHint">Drag anywhere to move</div>
     <div class="actions">
@@ -463,7 +463,9 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <div class="pubbox" id="cloudBox"><b>Your save code</b><span>Your coins, points, skins and photos are backed up online. On a new phone, tap <b>Restore</b> and type this code.</span>
         <div class="savecode" id="saveCode">·····</div><span id="cloudStatus" class="note" style="margin:0"></span>
         <div class="row2"><button class="big ghost" id="copySave">Copy code</button><button class="big ghost" id="restoreBtn">Restore</button></div>
-        <div id="restoreBox" hidden><input id="restoreIn" maxlength="14" placeholder="Type your save code" autocomplete="off" aria-label="Save code"><button class="big" id="restoreGo">Load my save</button></div></div>
+        <div id="restoreBox" hidden><input id="restoreIn" maxlength="14" placeholder="Type your save code" autocomplete="off" aria-label="Save code"><button class="big" id="restoreGo">Load my save</button></div>
+        <button class="big ghost" id="mergeBtn">Combine with another phone</button>
+        <div id="mergeBox" hidden><span>On the other phone or computer, open Skins &amp; Shop and find its save code. Type it here. Coins, points and skins from both are added together, and both will use this save from now on.</span><input id="mergeIn" maxlength="14" placeholder="Other phone's save code" autocomplete="off" aria-label="Other save code"><button class="big" id="mergeGo">Combine</button></div></div>
       <h3>HELP</h3>
       <label class="cbrow" for="cbTags"><input type="checkbox" id="cbTags"> Show color names (for color blindness)</label>
       <div class="pass">
@@ -840,6 +842,7 @@ cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;joy={id:
 cv.addEventListener('pointermove',e=>{if(joy&&e.pointerId===joy.id){joy.x=e.clientX;joy.y=e.clientY}});
 const endJoy=e=>{if(joy&&e.pointerId===joy.id)joy=null};
 cv.addEventListener('pointerup',endJoy);cv.addEventListener('pointercancel',endJoy);
+window.addEventListener('blur',()=>{joy=null});document.addEventListener('visibilitychange',()=>{joy=null});
 if(!('ontouchstart' in window))$('#touchHint').hidden=true;
 
 /* ================= networking ================= */
@@ -1866,12 +1869,19 @@ let mapTimer=null;
 function openMap(){if(!G)return;$('#mapUI').hidden=false;drawMap();clearInterval(mapTimer);mapTimer=setInterval(()=>{if(!G||$('#mapUI').hidden){clearInterval(mapTimer);return}drawMap()},100)}
 function closeMap(){$('#mapUI').hidden=true;clearInterval(mapTimer);$('#mapBtn').textContent='MAP';$('#meetMap').textContent='🗺 Map'}
 function placeMapTog(){const t=$('#mapToggle');let src=[$('#mapBtn'),$('#meetMap')].find(b=>b&&b.offsetParent&&b.getBoundingClientRect().width>0);if(!src){t.style.cssText='right:12px;top:12px';return}const r=src.getBoundingClientRect();t.style.cssText=`top:${r.top}px;right:${Math.max(4,innerWidth-r.right)}px;min-height:${r.height}px`}
-function toggleMap(){if($('#mapUI').hidden){openMap();if(!$('#mapUI').hidden){placeMapTog();$('#mapBtn').textContent='CLOSE';$('#meetMap').textContent='✕ Close map'}}else closeMap()}
+function toggleMap(){if($('#mapUI').hidden){openMap();if(!$('#mapUI').hidden){placeMapTog();$('#mapBtn').textContent='HIDE MAP';$('#mapToggle').textContent=G&&G.state==='meeting'?'CLOSE MAP':'HIDE MAP';$('#meetMap').textContent='✕ Close map'}}else closeMap()}
 let miniT=0;
-function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting';if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
-$('#miniMap').onclick=toggleMap;
-if(save.miniOff){delete save.miniOff;persist()}
-$('#mapBtn').onclick=toggleMap;$('#mapToggle').onclick=e=>{e.stopPropagation();closeMap()};$('#mapClose').onclick=e=>{e.stopPropagation();closeMap()};$('#mapUI').addEventListener('click',e=>{e.stopPropagation();closeMap()});
+function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
+$('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
+let MINI_OFF=false;
+['gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1)e.preventDefault()},{passive:false});
+document.documentElement.style.touchAction='manipulation';document.body.style.touchAction='manipulation';
+$('#mapBtn').onclick=()=>{
+  if(!$('#mapUI').hidden){closeMap();MINI_OFF=true;$('#miniMap').hidden=true;mapLabel();return}
+  if(MINI_OFF){MINI_OFF=false;$('#miniMap').hidden=false;mapLabel();return}
+  toggleMap()};
+function mapLabel(){$('#mapBtn').textContent=!$('#mapUI').hidden?'HIDE MAP':'MAP'}$('#mapToggle').onclick=e=>{e.stopPropagation();if(G&&G.state!=='meeting'){closeMap();MINI_OFF=true;$('#miniMap').hidden=true}else closeMap();mapLabel()};$('#mapUI').addEventListener('click',e=>{e.stopPropagation();closeMap()});
 const FX={shards:[],rings:[],last:0};
 function freezeBurst(x,y){for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,v=rand(70,190);FX.shards.push({x,y:y-8,vx:Math.cos(a)*v,vy:Math.sin(a)*v-80,life:rand(0.7,1.2),r:rand(2.5,6),rot:Math.random()*6,vr:rand(-8,8)})}FX.rings.push({x,y,life:0.7})}
 function drawFx(c,t){
@@ -2387,7 +2397,7 @@ const fmtCode=c=>c.slice(0,4)+'-'+c.slice(4,7)+'-'+c.slice(7);
 let cloudT=null,cloudBusy=false;
 function cloudSave(soon){clearTimeout(cloudT);cloudT=setTimeout(cloudPush,soon?1500:8000)}
 async function cloudPush(){
-  if(cloudBusy||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;cloudBusy=true;
+  if(!cloudReady||cloudBusy||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;cloudBusy=true;
   const data=JSON.stringify(save);
   try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/saves/${save.saveCode}`,fields:{data:{stringValue:data}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
     if(r.ok){save.cloudAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}}catch(e){}
@@ -2404,8 +2414,51 @@ $('#restoreGo').onclick=async()=>{
     toast('Save loaded! Welcome back, '+cleanName(save.name)+'.',3);setTimeout(()=>location.reload(),1200)}catch(e){toast('That save could not be loaded.')}
 };
 const fixHat=()=>{save.hat=mkHat(hatBase(save.hat),hatColorOf(save.hat),OUTFIT_IDS.includes(save.outfit)?save.outfit:'')};fixHat();
-const _persist0=persist;persist=function(){fixHat();_persist0();cloudSave(false)};
-setTimeout(()=>{if(!save.cloudAt||Date.now()-save.cloudAt>60000)cloudPush()},4000);
+const _persist0=persist;const saveSig=()=>[save.coins,save.points,(save.owned||[]).length,(save.photos||[]).length,save.photoSel,save.hat,save.color,save.visor,save.name,save.wins,save.games].join('|');
+persist=function(){fixHat();const g=saveSig();if(g!==save.sig){save.sig=g;save.savedAt=Date.now()}_persist0();cloudSave(false)};
+let cloudReady=false;
+const onSite=()=>/(^|\.)boltsquadgames\.com$/.test(location.hostname);
+async function cloudGet(code){const r=await fetch(FS+'/saves/'+code);if(r.status===404)return{missing:true};if(!r.ok)throw 0;const j=await r.json();return JSON.parse(j.fields.data.stringValue)}
+async function cloudPut(code,obj){const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/saves/${code}`,fields:{data:{stringValue:JSON.stringify(obj)}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});if(!r.ok)throw 0}
+function adoptSave(d,code,msg){Object.keys(save).forEach(k=>delete save[k]);Object.assign(save,d,{saveCode:code,cloudAt:Date.now()});save.sig=saveSig();try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}toast(msg,3);setTimeout(()=>location.reload(),1400)}
+async function cloudPull(){
+  if(!onSite()){cloudReady=true;return}
+  try{const d=await cloudGet(save.saveCode);
+    if(d&&d.mergedTo&&d.mergedTo!==save.saveCode){const m=await cloudGet(d.mergedTo);if(m&&!m.missing&&!m.mergedTo){adoptSave(m,d.mergedTo,'This phone now shares your combined save!');return}}
+    else if(d&&!d.missing&&!d.mergedTo&&(d.savedAt||0)>(save.savedAt||0)+3000){adoptSave(d,save.saveCode,'Loaded your newest progress from your other phone.');return}
+  }catch(e){}
+  cloudReady=true;
+}
+setTimeout(()=>cloudPull().then(()=>{if(cloudReady&&(!save.cloudAt||Date.now()-save.cloudAt>60000))cloudPush()}),2500);
+function mergeInto(a,b){
+  const m=JSON.parse(JSON.stringify(a)),n=k=>Math.max(0,+b[k]||0);
+  m.coins=(+a.coins||0)+Math.max(0,(+b.coins||0)-40);
+  ['points','wins','games','glitches'].forEach(k=>m[k]=(+a[k]||0)+n(k));
+  m.owned=[...new Set([...(a.owned||[]),...(b.owned||[])])];
+  m.photos=Array.isArray(a.photos)?a.photos:[];
+  (Array.isArray(b.photos)?b.photos:[]).forEach(p=>{if(m.photos.length>=20||!p||!p.img||m.photos.some(q=>q.img===p.img))return;const q=Object.assign({},p);
+    if(!q.base){q.base=q.id?b.pid+'-'+q.id:b.pid;q.rootId=null}while(m.photos.some(x=>x.id===q.id))q.id=Math.random().toString(36).slice(2,6);m.photos.push(q)});
+  if(m.photoSel==null||m.photoSel<0)m.photoSel=m.photos.length?0:-1;
+  m.lbSent=(+a.lbSent||0)+n('lbSent');m.lbQueue=(+a.lbQueue||0)+n('lbQueue')+n('lbSent');m.lbCarry2=true;
+  m.mergedPids=[...new Set([...(a.mergedPids||[]),...(b.mergedPids||[]),b.pid].filter(Boolean))];
+  m.savedAt=Date.now();return m;
+}
+$('#mergeBtn').onclick=()=>{$('#mergeBox').hidden=!$('#mergeBox').hidden};
+$('#mergeGo').onclick=async()=>{
+  const code=$('#mergeIn').value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(code.length!==10){toast('A save code has 10 letters and numbers.');return}
+  if(code===save.saveCode){toast('That is this phone\'s own code. Type the code from your other phone.',3);return}
+  if(!onSite()){toast('Combining works on boltsquadgames.com.');return}
+  try{const b=await cloudGet(code);
+    if(b.missing){toast('No save found with that code. Open the game on the other phone first, then try again.',3);return}
+    if(b.mergedTo){toast('That save was already combined.',3);return}
+    if(b.pid===save.pid){toast('Those are already the same save.');return}
+    if(!confirm('Combine '+cleanName(b.name||'that player')+' ('+(b.coins||0)+' coins) into this save?'))return;
+    const m=mergeInto(save,b);m.saveCode=save.saveCode;
+    await cloudPut(save.saveCode,m);await cloudPut(code,{mergedTo:save.saveCode,savedAt:Date.now()});
+    adoptSave(m,save.saveCode,'Combined! You now have '+m.coins.toLocaleString()+' coins. The other phone switches over next time it opens the game.');
+  }catch(e){toast('Could not combine. Check your internet and try again.')}
+};
 $('#openHow').onclick=()=>{$('#how').hidden=false};
 $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
@@ -2582,7 +2635,7 @@ function renderBank(){
   const box=$('#photoBank');if(!box)return;
   box.innerHTML=save.photos.map((p,i)=>`<button data-i="${i}" class="${i===save.photoSel?'on':''}" aria-label="Photo ${i+1}"><img alt="" src="${p.img}">${p.fx?'<span class="fxdot">✨</span>':''}<span class="bt ${p.st==='approved'?'ok':p.pub?'wait':''}">${p.st==='approved'?'Approved':p.pub?'Pending':'Only you'}</span></button>`).join('');
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.photoSel=+b.dataset.i;save.photoOn=true;syncCur();renderShop();sendAvatar()});
-  save.photos.forEach((p,i)=>{if(!p.pub||p.st==='approved'||BANKCHK.has(p.id+p.ver))return;BANKCHK.add(p.id+p.ver);const doc=p.id?save.pid+'-'+p.id:save.pid;fetch(FS+'/faceStatus/'+doc).then(r=>r.ok?r.json():null).then(j=>{const fl=j&&j.fields;if(fl&&String(fl.ver?.integerValue||'')===String(p.ver)){p.st=fl.status?.stringValue;if(p.st==='denied')p.pub=false;persist();renderBank()}}).catch(()=>{})});
+  save.photos.forEach((p,i)=>{if(!p.pub||p.st==='approved'||BANKCHK.has(p.id+p.ver))return;BANKCHK.add(p.id+p.ver);const doc=p.base||(p.id?save.pid+'-'+p.id:save.pid);fetch(FS+'/faceStatus/'+doc).then(r=>r.ok?r.json():null).then(j=>{const fl=j&&j.fields;if(fl&&String(fl.ver?.integerValue||'')===String(p.ver)){p.st=fl.status?.stringValue;if(p.st==='denied')p.pub=false;persist();renderBank()}}).catch(()=>{})});
 }
 $('#photoEdit').onclick=()=>{const p=curPhoto();if(!p)return;
   const root=p.base?save.photos.find(q=>q.id===p.rootId&&!q.base):(p.pub&&p.st==='approved'?p:null);
