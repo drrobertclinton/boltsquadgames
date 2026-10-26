@@ -140,6 +140,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .wires{touch-action:none;user-select:none;-webkit-user-select:none}
 .wire{width:64px;height:28px;background:var(--c);border:3px solid #04111e;cursor:grab;display:grid;place-items:center}
 .wire em{font-style:normal;font-weight:700;color:#04111e;font-size:13px}
+#miniMap{position:absolute;top:52px;right:max(12px,env(safe-area-inset-right,0px));width:min(42vw,190px);height:auto;border:2px solid rgba(58,209,184,.7);border-radius:12px;background:rgba(6,30,46,.82);z-index:4;cursor:pointer;touch-action:manipulation}
+.mapbtn.off{opacity:.55}
 .mapbtn{width:auto!important;padding:0 10px!important;font:400 12px Bungee,sans-serif!important;letter-spacing:.04em}
 .mapui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,22,.6);z-index:90;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .mapbox{background:#0a2236;border:2px solid #3ad1b8;border-radius:16px;padding:10px;width:min(100%,760px);max-height:100%;display:flex;flex-direction:column;gap:6px;overflow:hidden}
@@ -308,6 +310,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <button class="quit" id="quitBtn" aria-label="Quit to menu">✕</button>
     </div>
     <div id="tasklist"></div>
+    <canvas id="miniMap" width="360" height="250" aria-label="Mini map, tap to make it bigger"></canvas>
     <div class="mapui" id="mapUI" hidden><div class="mapbox"><div class="maphead"><b>TRENCH BASE MAP</b><button id="mapClose" aria-label="Close map">✕</button></div><canvas id="mapCv" width="720" height="500"></canvas><div class="maplegend"><span><i style="background:#ffd166"></i>You</span><span><i style="background:#ffb703;border-radius:3px"></i>Your repairs</span><span><i style="background:#ff4d6d"></i>Meeting table</span><span id="mapVentKey"><i style="background:#6b8496;border-radius:2px"></i>Vents</span></div></div></div>
     <div id="banner" hidden></div>
     <div class="touchhint" id="touchHint">Drag anywhere to move</div>
@@ -1701,26 +1704,29 @@ function drawWorld(t){
   if(joy){const r=cv.getBoundingClientRect();const ox=joy.ox-r.left,oy=joy.oy-r.top;let dx=joy.x-joy.ox,dy=joy.y-joy.oy;const d=Math.hypot(dx,dy);if(d>50){dx=dx/d*50;dy=dy/d*50}
     ctx.strokeStyle='rgba(232,244,248,.35)';ctx.lineWidth=3;ctx.beginPath();ctx.arc(ox,oy,50,0,7);ctx.stroke();ctx.fillStyle='rgba(232,244,248,.35)';ctx.beginPath();ctx.arc(ox+dx,oy+dy,22,0,7);ctx.fill()}
 }
-function drawMap(){
-  const cv2=$('#mapCv'),c=cv2.getContext('2d'),S=0.38,ox=18,oy=22,me=G.me,t=performance.now()/1000;
-  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv2.width,cv2.height);c.fillStyle='#0b3a50';c.fillRect(0,0,cv2.width,cv2.height);
+function drawMap(cv2,mini){
+  cv2=cv2||$('#mapCv');const c=cv2.getContext('2d'),S=mini?0.186:0.38,ox=mini?12:18,oy=mini?8:22,me=G.me,t=performance.now()/1000;
+  c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,cv2.width,cv2.height);if(!mini){c.fillStyle='#0b3a50';c.fillRect(0,0,cv2.width,cv2.height)}
   c.translate(ox,oy);c.scale(S,S);
   c.fillStyle='#8fb0c4';CORR.forEach(k=>{c.fillRect(k.x+10,k.y+10,k.w-20,k.h-20)});
   ROOMS.forEach(r=>{const T=THEME[r.id];c.fillStyle=T.floor;rr(c,r.x,r.y,r.w,r.h,22);c.fill();c.strokeStyle=T.plate;c.lineWidth=6;rr(c,r.x,r.y,r.w,r.h,22);c.stroke();
-    c.fillStyle=T.plate;c.font='48px Bungee, Arial Black, sans-serif';c.textAlign='center';c.fillText(r.name.toUpperCase(),r.x+r.w/2,r.y+r.h/2+12);c.textAlign='left'});
+    c.fillStyle=T.plate;c.font=(mini?'64px':'48px')+' Bungee, Arial Black, sans-serif';c.textAlign='center';const nm=r.name.toUpperCase();if(mini){c.font='66px Bungee, Arial Black, sans-serif';c.fillText({hub:'HUB',comms:'COMMS',dock:'DOCK',engine:'ENGINE',lab:'LAB',reactor:'REACTOR',hydro:'KELP',med:'REPAIR',vault:'VAULT'}[r.id],r.x+r.w/2,r.y+r.h/2+26)}else c.fillText(nm,r.x+r.w/2,r.y+r.h/2+12);c.textAlign='left'});
   c.fillStyle='#ff4d6d';c.beginPath();c.arc(EMERG.x,EMERG.y,22,0,7);c.fill();
   if(!me.glitch)me.tasks.filter(id=>!me.done.has(id)).forEach(id=>{const s=STATIONS[id];c.fillStyle='#ffb703';rr(c,s.x-14,s.y-14,28,28,6);c.fill()});
   if(me.glitch)VENTS.forEach(v=>{c.fillStyle='#6b8496';rr(c,v.x-16,v.y-10,32,20,4);c.fill()});
   if(G.breach){c.fillStyle='#ff4d6d';c.beginPath();c.arc(BREACH.x,BREACH.y,18+Math.sin(t*8)*5,0,7);c.fill()}
   if(G.lights&&!me.glitch){c.fillStyle='#ffd166';c.beginPath();c.arc(LIGHTS.x,LIGHTS.y,16+Math.sin(t*8)*4,0,7);c.fill()}
-  c.fillStyle='rgba(255,209,102,.35)';c.beginPath();c.arc(me.x,me.y,34+Math.sin(t*5)*8,0,7);c.fill();
-  c.fillStyle='#ffd166';c.strokeStyle='#04111e';c.lineWidth=5;c.beginPath();c.arc(me.x,me.y,18,0,7);c.fill();c.stroke();
-  $('#mapVentKey').hidden=!me.glitch;
+  c.fillStyle='rgba(255,209,102,.35)';c.beginPath();c.arc(me.x,me.y,(mini?70:34)+Math.sin(t*5)*(mini?14:8),0,7);c.fill();
+  c.fillStyle='#ffd166';c.strokeStyle='#04111e';c.lineWidth=mini?9:5;c.beginPath();c.arc(me.x,me.y,mini?38:18,0,7);c.fill();c.stroke();
+  if(!mini)$('#mapVentKey').hidden=!me.glitch;
 }
 let mapTimer=null;
 function openMap(){if(!G)return;$('#mapUI').hidden=false;drawMap();clearInterval(mapTimer);mapTimer=setInterval(()=>{if(!G||$('#mapUI').hidden){clearInterval(mapTimer);return}drawMap()},100)}
 function closeMap(){$('#mapUI').hidden=true;clearInterval(mapTimer)}
-$('#mapBtn').onclick=()=>$('#mapUI').hidden?openMap():closeMap();$('#mapClose').onclick=closeMap;$('#mapUI').addEventListener('click',e=>{if(e.target.id==='mapUI')closeMap()});
+let miniT=0;
+function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=save.miniOff===true||G.state==='meeting';if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
+$('#miniMap').onclick=openMap;
+$('#mapBtn').onclick=()=>{save.miniOff=!save.miniOff;persist();$('#mapBtn').classList.toggle('off',!!save.miniOff)};$('#mapClose').onclick=closeMap;$('#mapUI').addEventListener('click',e=>{if(e.target.id==='mapUI')closeMap()});
 const FX={shards:[],rings:[],last:0};
 function freezeBurst(x,y){for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,v=rand(70,190);FX.shards.push({x,y:y-8,vx:Math.cos(a)*v,vy:Math.sin(a)*v-80,life:rand(0.7,1.2),r:rand(2.5,6),rot:Math.random()*6,vr:rand(-8,8)})}FX.rings.push({x,y,life:0.7})}
 function drawFx(c,t){
@@ -1752,6 +1758,7 @@ function label(txt,x,y,col){ctx.font='600 12px "Chakra Petch", sans-serif';ctx.t
 
 /* ================= HUD ================= */
 function hud(){
+  miniMapTick();
   const me=G.me,[d,tot]=taskProgress();
   $('#barFill').style.width=(tot?d/tot*100:0)+'%';$('#barTxt').textContent=`Repairs ${d}/${tot}`;
   $('#coins').textContent=save.coins+G.earned;
