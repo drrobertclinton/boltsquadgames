@@ -137,6 +137,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .ventui{position:absolute;right:max(16px,env(safe-area-inset-right,0px));bottom:190px;display:grid;gap:6px;background:rgba(10,20,32,.9);border:2px solid #ff4d6d;border-radius:12px;padding:10px;z-index:5;min-width:170px}
 .ventui b{font-family:Bungee,sans-serif;font-weight:400;color:#ff4d6d;font-size:13px}
 .ventui button{font:700 14px 'Chakra Petch',sans-serif;background:#2a1520;color:#fff;border:1px solid #ff4d6d;border-radius:8px;padding:8px 10px;text-align:left}
+.sabui{bottom:280px}
 .ventui button.out{background:#ff4d6d;color:#2a0510}
 .act.venting{background:#ff4d6d}
 .wcol.l .wire{border-radius:0 14px 14px 0}
@@ -297,6 +298,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
     <div id="banner" hidden></div>
     <div class="touchhint" id="touchHint">Drag anywhere to move</div>
     <div class="actions">
+      <div class="ventui sabui" id="sabUI" hidden><b>SABOTAGE</b><button data-k="lights">Lights out</button><button data-k="breach">Hull breach (30s)</button></div>
       <button class="act sab" id="sabBtn" hidden>SABO<br>TAGE<span class="cd" id="sabCd"></span></button>
       <button class="act scan" id="scanBtn">SCAN<span class="cd" id="scanCd"></span></button>
       <button class="act rep" id="repBtn">REPORT</button>
@@ -533,7 +535,7 @@ const CSETS={
  safe:{n:'Easy to Tell Apart',c:[['Orange','#e69f00'],['Sky Blue','#56b4e9'],['Sea Green','#009e73'],['Yellow','#f0e442'],['Blue','#0072b2'],['Red','#d55e00'],['Rose','#cc79a7'],['Black','#222222'],['White','#f5f5f5'],['Gray','#9aa5b1'],['Lime','#a6e22e'],['Brown','#8b5a2b']]},
 };
 function COLS(){return(CSETS[save.palette]||CSETS.classic).c.map(x=>x[1])}
-const HATS=[{id:'none',n:'No hat',cost:0},{id:'antenna',n:'Antenna',cost:0},{id:'cap',n:'Ball cap',cost:150},{id:'beanie',n:'Beanie',cost:200},{id:'headphones',n:'Headphones',cost:250},{id:'bow',n:'Big bow',cost:250},{id:'propeller',n:'Propeller',cost:350},{id:'party',n:'Party hat',cost:400},{id:'halo',n:'Halo',cost:500},{id:'cowboy',n:'Cowboy hat',cost:600},{id:'pirate',n:'Pirate hat',cost:700},{id:'fin',n:'Shark fin',cost:800},{id:'viking',n:'Viking helmet',cost:900},{id:'wizard',n:'Wizard hat',cost:1000},{id:'astronaut',n:'Space helmet',cost:1200},{id:'crown',n:'Crown',cost:1500},{id:'tophat',n:'Top hat',cost:2000},{id:'aliencat',n:'Alien Cat',cost:10000}];
+const HATS=[{id:'none',n:'No hat',cost:0},{id:'antenna',n:'Antenna',cost:0},{id:'cap',n:'Ball cap',cost:150},{id:'beanie',n:'Beanie',cost:200},{id:'headphones',n:'Headphones',cost:250},{id:'bow',n:'Big bow',cost:250},{id:'propeller',n:'Propeller',cost:350},{id:'party',n:'Party hat',cost:400},{id:'halo',n:'Halo',cost:500},{id:'cowboy',n:'Cowboy hat',cost:600},{id:'pirate',n:'Pirate hat',cost:700},{id:'fin',n:'Shark fin',cost:800},{id:'viking',n:'Viking helmet',cost:900},{id:'wizard',n:'Wizard hat',cost:1000},{id:'astronaut',n:'Space helmet',cost:1200},{id:'crown',n:'Crown',cost:1500},{id:'tophat',n:'Top hat',cost:2000},{id:'aliencat',n:'Alien Cat',cost:5000}];
 const HAT_DEF={antenna:'#ffd166',cap:'#2b6cb0',beanie:'#e63946',headphones:'#ff5d8f',bow:'#ff5da2',propeller:'#c53030',party:'#8e44ec',halo:'#ffd166',cowboy:'#8b5a2b',pirate:'#2b2d42',fin:'#7d8fa0',viking:'#9aa5b1',wizard:'#2f6bff',astronaut:'#eef2f6',crown:'#ffd166',tophat:'#1a1a1a',aliencat:'#7ed957'};
 const HCOLS=[{id:'#e63946',n:'Red'},{id:'#2f6bff',n:'Blue'},{id:'#2a9d3f',n:'Green'},{id:'#a6e22e',n:'Lime'},{id:'#ffd60a',n:'Yellow'},{id:'#ff8c1a',n:'Orange'},{id:'#8e44ec',n:'Purple'},{id:'#ff5da2',n:'Pink'},{id:'#2b2d42',n:'Black'},{id:'#eef2f6',n:'White'}];
 const HCOL_COST=0;
@@ -549,7 +551,7 @@ const VISORS=[{id:'#5ff0ff',n:'Cyan',cost:0},{id:'#9ef01a',n:'Lime',cost:0},{id:
 const VISOR_IDS=VISORS.map(v=>v.id);
 const REWARDS=[{at:1000,key:'visor:#ffd166',n:'Gold visor'},{at:2500,key:'paint:#5b3fa8',n:'Galaxy paint'},{at:5000,key:'paint:#e8b923',n:'Gold paint'}];
 const MAXP=10;
-const DIFF={easy:{zap:[34,44],start:26,bold:0.25,breach:45,tasks:4,label:'Easy'},normal:{zap:[22,32],start:14,bold:0.1,breach:35,tasks:5,label:'Normal'},hard:{zap:[14,21],start:8,bold:0.03,breach:26,tasks:6,label:'Hard'}};
+const DIFF={easy:{zap:[34,44],start:26,bold:0.25,breach:30,tasks:4,label:'Easy'},normal:{zap:[22,32],start:14,bold:0.1,breach:30,tasks:5,label:'Normal'},hard:{zap:[14,21],start:8,bold:0.03,breach:30,tasks:6,label:'Hard'}};
 const SHARP={easy:{see:250,noise:44,cred:1},normal:{see:330,noise:34,cred:0.8},hard:{see:420,noise:20,cred:0.55}};
 function D(){return DIFF[(G&&G.diff)||'normal']||DIFF.normal}
 function S(){return SHARP[(G&&!G.online&&G.me&&G.me.glitch)?(G.diff||'normal'):'normal']}
@@ -602,6 +604,7 @@ const STATIONS=[
 ].map((s,i)=>Object.assign(s,{id:i}));
 const EMERG={x:900,y:600};
 const BREACH={x:1000,y:960};
+const LIGHTS={x:1050,y:528};
 const roomName=id=>ROOMS.find(r=>r.id===id).name;
 const inR=(x,y,r)=>x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h;
 function roomAt(x,y){return ROOMS.find(r=>inR(x,y,r))||null}
@@ -834,6 +837,7 @@ function goTo(b,x,y){
   pts.push({x,y});b.path=pts;
 }
 function chooseNext(b){
+  if(G.lights&&b.lightDuty){b.goal='lights';b.task=null;goTo(b,LIGHTS.x-30,LIGHTS.y+20);return}
   if(G.breach&&b.breachDuty){b.goal='breach';b.task=null;goTo(b,BREACH.x+rand(-25,15),BREACH.y+rand(-10,20));return}
   const todo=b.tasks.filter(id=>!b.done.has(id));
   const st=(todo.length&&Math.random()<0.55)?STATIONS[pick(todo)]:pick(STATIONS);
@@ -841,6 +845,7 @@ function chooseNext(b){
 }
 function arrive(b){
   if(b.goal==='breach'){b.wait=999;return}
+  if(b.goal==='lights'){b.wait=999;return}
   if(b.goal==='flee'){b.wait=rand(1,3);b.task=null;return}
   if(b.goal==='vent'){const v=VENTS[b.ventTo];if(b.alive&&b.glitch&&v){ventSeen(b,v);b.inVent=v.id;b.x=v.x;b.y=v.y;b.ventT=rand(1,2);b.ventHop=pick(v.links)}b.goal=null;return}
   const real=b.task!=null&&b.tasks.includes(b.task)&&!b.done.has(b.task);
@@ -887,7 +892,7 @@ function doZap(z,v){
   G.ents.forEach(o=>{info.where[o.id]=placeName(o.x,o.y)});
   G.ents.forEach(o=>{
     if(o===z||o===v||!o.alive||o.human)return;const d=dist(o,v);
-    const see=S().see;
+    const see=G.lights?150:S().see;
     if(d<see){o.sus[z.id]=(o.sus[z.id]||0)+90;o.saw={killer:z,victim:v,room}}
     else if(d<see+150){o.sus[z.id]=(o.sus[z.id]||0)+30;o.nearSaw={who:z,room};G.ents.forEach(p=>{if(p!==o&&p!==z&&p!==v&&p.alive&&dist(p,v)<300)o.sus[p.id]=(o.sus[p.id]||0)+18})}
   });
@@ -907,6 +912,16 @@ function startBreach(){
   G.breach={t:D().breach,fix:0};
   G.ents.filter(e=>!e.human&&e.alive&&!e.glitch).sort((a,b)=>dist(a,BREACH)-dist(b,BREACH)).slice(0,2).forEach(c=>{c.breachDuty=true;c.path=[];c.wait=0;c.task=null;c.goal=null});
   broadcast({t:'toast',msg:'HULL BREACH! Seal it at the Sub Dock!',sec:3});
+}
+function startLights(){
+  G.lights={fix:0,wait:rand(10,16)};
+  G.ents.filter(e=>!e.human&&e.alive&&!e.glitch).sort((a,b)=>dist(a,LIGHTS)-dist(b,LIGHTS)).slice(0,1).forEach(c=>{c.lightDuty=true;c.path=[];c.wait=0;c.task=null;c.goal=null});
+  broadcast({t:'toast',msg:'LIGHTS OUT! Fix them at the panel in Central Hub.',sec:3});
+}
+function endLights(fixed){
+  G.lights=null;G.sabCd=50;
+  G.ents.forEach(e=>{if(e.lightDuty){e.lightDuty=false;e.wait=0;e.path=[];e.goal=null}});
+  if(fixed)broadcast({t:'toast',msg:'Lights are back on!'});
 }
 function endBreach(fixed){
   G.breach=null;G.sabCd=50;
@@ -940,7 +955,9 @@ function hostAction(ent,type,d){
     case 'ventout':
       if(ent.inVent!=null){const v=VENTS[ent.inVent];ent.inVent=null;ent.x=v.x;ent.y=v.y+20;if(inPlay)ventSeen(ent,v)}break;
     case 'sab':
-      if(inPlay&&ent.glitch&&ent.alive&&G.sabCd<=0&&!G.breach)startBreach();break;
+      if(inPlay&&ent.glitch&&ent.alive&&G.sabCd<=0&&!G.breach&&!G.lights){if(d&&d.k==='lights')startLights();else startBreach()}break;
+    case 'fixlights':
+      if(inPlay&&G.lights&&!ent.glitch&&dist(ent,LIGHTS)<120)endLights(true);break;
     case 'vote':
       if(G.state==='meeting'&&!G.resolving&&ent.alive&&!G.votes.has(ent.id)){
         const v=d.v==='skip'?'skip':(target&&target.alive?target.id:null);if(v==null)return;
@@ -962,6 +979,7 @@ function canUse(){
   const me=G.me;
   if(me.inVent!=null)return 'exit';
   if(me.glitch&&me.alive&&nearVent(me,46))return 'vent';
+  if(G.lights&&!me.glitch&&dist(me,LIGHTS)<62)return 'lights';
   if(me.alive&&!G.meetingUsed&&!G.breach&&dist(me,EMERG)<70)return 'meet';
   const s=nearStation();if(!s)return null;
   if(me.glitch)return 'fake';
@@ -971,6 +989,7 @@ function doUse(){
   const u=canUse();if(!u)return;
   if(u==='vent'){const v=nearVent(G.me,46);if(NET.mode==='guest'){G.me.inVent=v.id;G.me.x=v.x;G.me.y=v.y}act('vent',{n:v.id});return}
   if(u==='exit'){ventOut();return}
+  if(u==='lights'){openLights();return}
   if(u==='meet')act('meet');
   else if(u==='fake')toast('You pretend to work on '+nearStation().label+'...');
   else openTask(nearStation());
@@ -996,7 +1015,8 @@ function doScanZap(){
     act('scan',{v:v.id});
   }
 }
-function doSabotage(){if(!G.me.glitch||!G.me.alive||G.sabCd>0||G.breach)return;act('sab')}
+function doSabotage(){if(!G.me.glitch||!G.me.alive||G.sabCd>0||G.breach||G.lights)return;const u=$('#sabUI');u.hidden=!u.hidden}
+document.querySelectorAll('#sabUI button').forEach(b=>b.onclick=()=>{$('#sabUI').hidden=true;act('sab',{k:b.dataset.k})});
 function movePlayer(dt){
   const me=G.me;
   let vx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),vy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);
@@ -1028,18 +1048,19 @@ function update(dt){
       b.spot+=dt;if(b.spot>0.5){b.spot=0;startMeeting(b,v);return}
     }else b.spot=0;
   }
+  if(G.lights){G.lights.wait-=dt;const n=G.lights.wait>0?0:G.ents.filter(e=>e.alive&&!e.glitch&&!e.human&&dist(e,LIGHTS)<60).length;G.lights.fix+=dt*n;if(G.lights.fix>=3.5)endLights(true)}
   if(G.breach){
     G.breach.t-=dt;
     const n=G.ents.filter(e=>e.alive&&!e.glitch&&dist(e,BREACH)<60).length;
     G.breach.fix+=dt*n;
     if(G.breach.fix>=4)endBreach(true);
     else if(G.breach.t<=0){G.breach=null;endGame('glitch','The hull breach flooded Trench Base!');return}
-  }else if(!G.glitch.human&&G.glitch.alive&&!(G.tut&&!G.tut.done)){G.aiSabCd-=dt;if(G.aiSabCd<=0){G.aiSabCd=rand(55,85);if(Math.random()<0.6)startBreach()}}
+  }else if(!G.lights&&!G.glitch.human&&G.glitch.alive&&!(G.tut&&!G.tut.done)){G.aiSabCd-=dt;if(G.aiSabCd<=0){G.aiSabCd=rand(55,85);if(Math.random()<0.65){if(Math.random()<0.5)startLights();else startBreach()}}}
   if(G.online){NET.lastSnap-=dt;if(NET.lastSnap<=0){NET.lastSnap=1/12;sendSnaps()}}
 }
 function sendSnaps(){
   const e=G.ents.map(x=>[x.id,Math.round(x.x),Math.round(x.y),x.face,x.moving?1:0,x.alive?1:0,Math.round(x.bx||0),Math.round(x.by||0),(x.cleared?1:0)|(x.ejected?2:0)|(x.bodyFound?4:0)|(x.inVent!=null?8:0)]);
-  const meta={b:G.breach?Math.ceil(G.breach.t):0,mu:G.meetingUsed?1:0,p:taskProgress()};
+  const meta={l:G.lights?1:0,b:G.breach?Math.ceil(G.breach.t):0,mu:G.meetingUsed?1:0,p:taskProgress()};
   G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(G.zapCd):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
 }
 function guestUpdate(dt){
@@ -1064,7 +1085,7 @@ function clientMsg(m){
     case 'snap':{
       if(!G.guest)return;
       m.e.forEach(a=>{const e=G.ents[a[0]];if(!e)return;e.alive=!!a[5];e.bx=a[6];e.by=a[7];e.cleared=!!(a[8]&1);e.ejected=!!(a[8]&2);e.bodyFound=!!(a[8]&4);if(e!==G.me){e.inVent=(a[8]&8)?1:null;e.tx=a[1];e.ty=a[2];e.face=a[3];e.moving=!!a[4]}});
-      G.breach=m.m.b?{t:m.m.b}:null;G.meetingUsed=!!m.m.mu;G.prog=m.m.p;G.zapCd=m.z;G.sabCd=m.s;break;}
+      G.breach=m.m.b?{t:m.m.b}:null;G.lights=m.m.l?{}:null;G.meetingUsed=!!m.m.mu;G.prog=m.m.p;G.zapCd=m.z;G.sabCd=m.s;break;}
     case 'toast':toast(m.msg,m.sec||2.3);break;
     case 'earn':G.earned+=m.n;if(m.msg)toast(m.msg);break;
     case 'frozen':closeTask();if(G.guest)G.me.alive=false;toast('You got frozen! You are a ghost now. Keep fixing things.',3.5);break;
@@ -1187,7 +1208,7 @@ function buildDecor(){
   {d.strokeStyle='rgba(58,209,184,.35)';d.lineWidth=3;d.beginPath();d.arc(900,600,95,0,7);d.stroke();d.lineWidth=1.5;d.beginPath();d.arc(900,600,110,0,7);d.stroke();
    for(let i=0;i<16;i++){const a=i/16*Math.PI*2;line(900+Math.cos(a)*95,600+Math.sin(a)*95,900+Math.cos(a)*(i%4?102:112),600+Math.sin(a)*(i%4?102:112),2,'rgba(58,209,184,.45)')}
    [[975,458],[1045,458]].forEach(([x,y])=>{circ(x,y,20,'#3c5566');circ(x,y,15,'#0a2a44')});
-   [[722,738],[1078,525]].forEach(([x,y])=>{box(x-12,y-6,24,18,4,'#5b3a24');circ(x-5,y-12,8,'#2f8a5c');circ(x+5,y-14,9,'#3aa36b');circ(x,y-20,7,'#4caf50')});
+   [[722,738]].forEach(([x,y])=>{box(x-12,y-6,24,18,4,'#5b3a24');circ(x-5,y-12,8,'#2f8a5c');circ(x+5,y-14,9,'#3aa36b');circ(x,y-20,7,'#4caf50')});
    [[840,705],[960,705]].forEach(([x,y])=>box(x-28,y,56,12,5,'#2b4f66'));}
   extraDecor(d);
   d.__plates();
@@ -1400,9 +1421,10 @@ function drawWorld(t){
   const myVent=me.inVent!=null?VENTS[me.inVent]:null;
   VENTS.forEach(v=>drawVent(ctx,v,t,!!myVent&&myVent.links.includes(v.id)));
   STATIONS.forEach(s=>drawStation(ctx,s,mine.has(s.id),t));
+  {const lo=!!G.lights;if(lo)glow(LIGHTS.x,LIGHTS.y,55,'rgba(255,209,102,'+(0.35+Math.sin(t*7)*0.25)+')');ctx.fillStyle='#56708a';rr(ctx,LIGHTS.x-15,LIGHTS.y-26,30,34,4);ctx.fill();ctx.fillStyle='#1b2f45';rr(ctx,LIGHTS.x-11,LIGHTS.y-22,22,26,3);ctx.fill();ctx.fillStyle=lo?(Math.sin(t*10)>0?'#ffd166':'#3a2f10'):'#ffd166';ctx.beginPath();ctx.arc(LIGHTS.x,LIGHTS.y-13,5,0,7);ctx.fill();ctx.fillStyle='#a0b4c3';ctx.fillRect(LIGHTS.x-3,LIGHTS.y-8,6,4);[[-6,0],[0,0],[6,0]].forEach(([a])=>{ctx.fillStyle=lo?'#ff4d6d':'#9ef01a';ctx.fillRect(LIGHTS.x+a-2,LIGHTS.y-1,4,3)})}
   const bOn=!!G.breach;if(bOn)glow(BREACH.x,BREACH.y,60,'rgba(255,77,109,'+(0.4+Math.sin(t*8)*0.3)+')');
   ctx.fillStyle=bOn?'#ff4d6d':'#3c5566';rr(ctx,BREACH.x-16,BREACH.y-22,32,26,6);ctx.fill();
-  const vis=330,canSee=e=>e.inVent==null&&(!me.alive||dist(e,me)<vis);
+  const vis=(G.lights&&!me.glitch&&me.alive)?135:330,canSee=e=>e.inVent==null&&(!me.alive||dist(e,me)<vis);
   const draws=[];
   G.ents.forEach(e=>{
     if(!e.alive&&!e.ejected&&!e.cleared&&canSee({x:e.bx,y:e.by}))draws.push({y:e.by,f:()=>drawBot(ctx,e.bx,e.by,e.color,e.hat,1,'frozen',t,false,e.visor)});
@@ -1421,6 +1443,7 @@ function drawWorld(t){
   if(G.breach){ctx.fillStyle='rgba(255,40,70,'+(0.08+Math.sin(t*6)*0.06)+')';ctx.fillRect(0,0,vw,vh)}
   const targets=[];
   if(G.breach)targets.push({x:BREACH.x,y:BREACH.y,c:'#ff4d6d'});
+  if(G.lights&&!me.glitch)targets.push({x:LIGHTS.x,y:LIGHTS.y,c:'#ffd166'});
   STATIONS.forEach(s=>{if(mine.has(s.id))targets.push({x:s.x,y:s.y,c:'#ffd166'})});
   targets.forEach(tg=>{
     const sx=(tg.x-camX)*zoom,sy=(tg.y-camY)*zoom;if(sx>30&&sx<vw-30&&sy>60&&sy<vh-30)return;
@@ -1444,8 +1467,8 @@ function hud(){
   const sb=$('#scanBtn');
   if(me.glitch){sb.disabled=!me.alive||me.inVent!=null||G.zapCd>0||!nearestOther(75);$('#scanCd').textContent=G.zapCd>0?Math.ceil(G.zapCd):''}
   else{sb.disabled=!me.alive||(me.scanCd||0)>0;$('#scanCd').textContent=(me.scanCd||0)>0?Math.ceil(me.scanCd):''}
-  $('#sabBtn').disabled=G.sabCd>0||!!G.breach;$('#sabCd').textContent=G.sabCd>0?Math.ceil(G.sabCd):'';
-  const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else bn.hidden=true;
+  $('#sabBtn').disabled=G.sabCd>0||!!G.breach||!!G.lights;if($('#sabBtn').disabled||G.state!=='play')$('#sabUI').hidden=true;$('#sabCd').textContent=G.sabCd>0?Math.ceil(G.sabCd):'';
+  const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else if(G.lights){bn.hidden=false;bn.textContent='LIGHTS OUT · PANEL IN CENTRAL HUB'}else bn.hidden=true;
   let html;
   if(me.glitch){const crew=G.ents.filter(e=>e.alive&&e!==me).length;html=`<b>YOUR MISSION</b>Freeze bots until only 1 crew bot is left.<br><span class="r">Awake crew: ${crew}</span>`}
   else html='<b>'+(me.alive?'YOUR REPAIRS':'GHOST REPAIRS')+'</b>'+me.tasks.map(id=>{const s=STATIONS[id];return`<div class="${me.done.has(id)?'d':''}">${s.label} <span class="r">· ${roomName(s.room)}</span></div>`}).join('');
@@ -1465,6 +1488,14 @@ function openTask(st){
   G.state='task';G.curTask=st;$('#taskTitle').textContent=st.label;const body=$('#taskBody');body.innerHTML='';$('#task').hidden=false;
   const done=()=>{if(G&&G.curTask===st){closeTask();if(NET.mode==='guest'){G.me.done.add(st.id);sendHost({t:'task',id:st.id})}else hostAction(G.me,'task',{id:st.id})}};
   ({wires:mgWires,sonar:mgSonar,code:mgCode,pump:mgPump,sort:mgSort})[st.type](body,done,st);
+}
+function openLights(){
+  if(G.state!=='play')return;const st={id:-1,label:'Fix the Lights'};
+  G.state='task';G.curTask=st;$('#taskTitle').textContent=st.label;const body=$('#taskBody');$('#task').hidden=false;
+  const on=Array.from({length:5},()=>Math.random()<0.4);if(on.every(Boolean))on[0]=false;
+  const draw=()=>{body.innerHTML=`<div class="tiles" style="grid-template-columns:repeat(5,1fr)">${on.map((v,i)=>`<button class="tile${v?' ok':''}" data-i="${i}" style="aspect-ratio:auto;height:80px;font-size:15px;min-width:0;padding:0">${v?'ON':'OFF'}</button>`).join('')}</div><p class="hint">Flip every switch to ON.</p>`;
+    body.querySelectorAll('.tile').forEach(b=>b.onclick=()=>{on[+b.dataset.i]=!on[+b.dataset.i];if(on.every(Boolean)){closeTask();act('fixlights');if(NET.mode==='guest')G.lights=null}else draw()})};
+  draw();
 }
 function closeTask(){$('#task').hidden=true;if(G){G.curTask=null;if(G.state==='task')G.state='play'}}
 $('#taskClose').onclick=closeTask;
@@ -1595,7 +1626,7 @@ function botReact(spk,p,target,room){
 let meetTimeout=null,meetTick=null;
 function topSus(b){let best=null,bv=14;G.ents.forEach(o=>{if(o!==b&&o.alive&&(b.sus[o.id]||0)>bv){bv=b.sus[o.id];best=o}});return best}
 function startMeeting(reporter,body){
-  G.state='meeting';if(G.breach)endBreach(false);
+  G.state='meeting';if(G.breach)endBreach(false);if(G.lights)endLights(false);
   G.ents.forEach(e=>{e.chase=null;e.spot=0});
   const lines=[],last=G.freezes[G.freezes.length-1],say=(e,text)=>lines.push({id:e?e.id:null,text});
   if(body){body.bodyFound=true;if(reporter.human)say(reporter,`I found ${body.name} frozen!`);else say(reporter,`I found ${body.name} frozen in ${reporter.glitch?pick(ROOMS).name:placeName(body.bx,body.by)}!`)}
