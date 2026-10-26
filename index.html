@@ -121,6 +121,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .topbar>*{pointer-events:auto}
 .role{font-family:var(--display);font-size:13px;padding:7px 10px;border-radius:10px;background:var(--kelp);color:#03241f;white-space:nowrap}
 .role.glitch{background:var(--danger);color:#2b0010}
+.role.eng{background:#ffb347;color:#2a1600}
 .prog{flex:1;max-width:340px;background:rgba(4,17,30,.8);border:2px solid var(--line);border-radius:10px;height:32px;position:relative;overflow:hidden}
 #barFill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#1e8573,var(--kelp));width:0;transition:width .4s}
 #barTxt{position:relative;font-weight:700;font-size:13px;line-height:28px;padding-left:10px;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
@@ -412,6 +413,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <div class="diff" id="diffLobby"></div>
       <div class="diff zapset" id="zapLobby"></div>
       <div class="diff" id="glLobby"></div>
+      <div class="diff" id="engLobby"></div>
       <div class="plist" id="plist"></div>
       <div class="row2">
         <button class="big" id="lobbyStart">Start Game</button>
@@ -904,7 +906,7 @@ function hostDrop(conn){
 function sendLobby(){
   const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor,fp:p.fp||''}));
   NET.list=list;
-  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec(),gl:glCount()})}catch(e){}}});
+  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec(),gl:glCount(),eng:engCount()})}catch(e){}}});
   if(!NET.inGame)renderLobby();
 }
 function joinSquad(code){
@@ -946,19 +948,21 @@ function newGame(mode,role){
   g.glitch=true;
   const nGl=mode==='online'?glCount():1;
   if(nGl===2){const pool=ents.filter(e=>!e.glitch);pick(pool).glitch=true}
+  if(mode==='online'){shuffle(ents.filter(e=>!e.glitch)).slice(0,engCount()).forEach(e=>e.eng=true)}
+  G_ENG=ents.filter(e=>e.eng).length;
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
   placeAtTable(ents);
   G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
   ents.forEach(e=>{if(e.glitch)e.zcd=e.human?G.zapCd:20});G.nGl=ents.filter(e=>e.glitch).length;
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
-  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,mates:e.glitch?ents.filter(o=>o.glitch&&o!==e).map(o=>o.id):[],nGl:ents.filter(o=>o.glitch).length,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
+  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,eng:!!e.eng,nEng:G_ENG,mates:e.glitch?ents.filter(o=>o.glitch&&o!==e).map(o=>o.id):[],nGl:ents.filter(o=>o.glitch).length,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
   enterGameUI(G.me.glitch);
   if(mode==='tutorial')tutStart();
 }
 function guestStart(m){
   const ents=m.roster.map((r,i)=>Object.assign({},r,{x:m.pos[i][0],y:m.pos[i][1],tx:m.pos[i][0],ty:m.pos[i][1],alive:true,face:1,moving:false,bx:0,by:0,cleared:false,ejected:false,bodyFound:false,glitch:false,tasks:[],done:new Set()}));
-  const me=ents[m.myId];me.scansLeft=2;me.glitch=!!m.glitch;(m.mates||[]).forEach(id=>{if(ents[id])ents[id].mate=true});me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
+  const me=ents[m.myId];me.scansLeft=2;me.glitch=!!m.glitch;me.eng=!m.glitch&&!!m.eng;G_ENG=m.nEng||0;(m.mates||[]).forEach(id=>{if(ents[id])ents[id].mate=true});me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
   G={nGl:m.nGl||1,ents,me,guest:true,diff:m.diff||'normal',t:0,state:'play',zapCd:12,sabCd:30,breach:null,meetingUsed:false,prog:[0,1],earned:0,hudT:0,tlKey:'',online:true};
   enterGameUI(me.glitch);
 }
@@ -969,6 +973,9 @@ function enterGameUI(isGlitch){
   $('#sabBtn').hidden=!isGlitch;
   const mates=G.ents.filter(e=>isMate(e)).map(e=>e.name);
   toast(isGlitch?(mates.length?`You are a GLITCH with ${mates.join(' and ')}. Their name shows in red. Zap bots when no one is looking.`:'You are the GLITCH. Zap bots when no one is looking.'):(G.nGl>1?'You are CREW. There are 2 Glitches this game. Find them!':'You are CREW. Do your repairs and find the Glitch.'),4);
+  $('#roleChip').classList.toggle('eng',!isGlitch&&!!G.me.eng);
+  if(!isGlitch&&G.me.eng){$('#roleChip').textContent='ENGINEER';setTimeout(()=>toast('You are an ENGINEER. You are crew, but you can use the vents too. Careful: if someone sees you vent, they may think you are the Glitch!',5),3600)}
+  else if(G_ENG>0)setTimeout(()=>toast(`This game has ${G_ENG} secret Engineer${G_ENG>1?'s':''}. Engineers can use vents too, so venting does not prove someone is the Glitch.`,4.5),3600);
 }
 function taskProgress(){if(G.guest)return G.prog;let tot=0,d=0;G.ents.forEach(e=>{if(!e.glitch){tot+=e.tasks.length;d+=e.done.size}});return[d,tot]}
 
@@ -1099,7 +1106,7 @@ function hostAction(ent,type,d){
         deliver(ent,{t:'toast',sec:3,msg:hot?`${target.name} reads HOT! Zap energy from ${ago}s ago.`:`${target.name} reads clean. No zap energy.`});
       }break;
     case 'vent':{
-      const v=VENTS[d.n];if(!inPlay||!ent.glitch||!ent.alive||!v)return;
+      const v=VENTS[d.n];if(!inPlay||!(ent.glitch||ent.eng)||!ent.alive||!v)return;
       if(ent.inVent==null){if(dist(ent,v)<70&&!((ent.ventCd||0)>0)){ventSeen(ent,v);ent.inVent=v.id;ent.ventTime=0;ent.x=v.x;ent.y=v.y}}
       else if(VENTS[ent.inVent].links.includes(v.id)){ent.inVent=v.id;ent.x=v.x;ent.y=v.y}
       break;}
@@ -1130,7 +1137,7 @@ function nearStation(){return STATIONS.find(s=>Math.hypot(s.x-G.me.x,s.y-G.me.y)
 function canUse(){
   const me=G.me;
   if(me.inVent!=null)return 'exit';
-  if(me.glitch&&me.alive&&nearVent(me,46)&&!((me.ventCd||0)>0))return 'vent';
+  if((me.glitch||me.eng)&&me.alive&&nearVent(me,46)&&!((me.ventCd||0)>0))return 'vent';
   if(G.lights&&!me.glitch&&dist(me,LIGHTS)<62)return 'lights';
   if(me.alive&&dist(me,MONITOR)<95)return 'cams';
   if(me.alive&&!G.meetingUsed&&!G.breach&&(G.meetCd||0)<=0&&dist(me,EMERG)<70)return 'meet';
@@ -1242,7 +1249,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;NET.eng=[0,1,2].includes(m.eng)?m.eng:0;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -1859,12 +1866,12 @@ function drawMap(cv2,mini){
     c.fillStyle=T.plate;c.font=(mini?'64px':'48px')+' Bungee, Arial Black, sans-serif';c.textAlign='center';const nm=r.name.toUpperCase();if(mini){c.font='66px Bungee, Arial Black, sans-serif';c.fillText({hub:'HUB',comms:'COMMS',dock:'DOCK',engine:'ENGINE',lab:'LAB',reactor:'REACTOR',hydro:'KELP',med:'REPAIR',vault:'VAULT',sec:'SEC'}[r.id],r.x+r.w/2,r.y+r.h/2+26)}else c.fillText(nm,r.x+r.w/2,r.y+r.h/2+12);c.textAlign='left'});
   c.fillStyle='#ff4d6d';c.beginPath();c.arc(EMERG.x,EMERG.y,22,0,7);c.fill();
   if(!me.glitch)me.tasks.filter(id=>!me.done.has(id)).forEach(id=>{const s=STATIONS[id];c.fillStyle='#ffb703';rr(c,s.x-14,s.y-14,28,28,6);c.fill()});
-  if(me.glitch)VENTS.forEach(v=>{c.fillStyle='#6b8496';rr(c,v.x-16,v.y-10,32,20,4);c.fill()});
+  if(me.glitch||me.eng)VENTS.forEach(v=>{c.fillStyle='#6b8496';rr(c,v.x-16,v.y-10,32,20,4);c.fill()});
   if(G.breach){c.fillStyle='#ff4d6d';c.beginPath();c.arc(BREACH.x,BREACH.y,18+Math.sin(t*8)*5,0,7);c.fill()}
   if(G.lights&&!me.glitch){c.fillStyle='#ffd166';c.beginPath();c.arc(LIGHTS.x,LIGHTS.y,16+Math.sin(t*8)*4,0,7);c.fill()}
   c.fillStyle='rgba(255,209,102,.35)';c.beginPath();c.arc(me.x,me.y,(mini?70:34)+Math.sin(t*5)*(mini?14:8),0,7);c.fill();
   c.fillStyle='#ffd166';c.strokeStyle='#04111e';c.lineWidth=mini?9:5;c.beginPath();c.arc(me.x,me.y,mini?38:18,0,7);c.fill();c.stroke();
-  if(!mini)$('#mapVentKey').hidden=!me.glitch;
+  if(!mini)$('#mapVentKey').hidden=!(me.glitch||me.eng);
 }
 let mapTimer=null;
 function openMap(){if(!G)return;$('#mapUI').hidden=false;drawMap();clearInterval(mapTimer);mapTimer=setInterval(()=>{if(!G||$('#mapUI').hidden){clearInterval(mapTimer);return}drawMap()},100)}
@@ -1918,7 +1925,7 @@ function hud(){
   const me=G.me,[d,tot]=taskProgress();
   $('#barFill').style.width=(tot?d/tot*100:0)+'%';$('#barTxt').textContent=`Repairs ${d}/${tot}`;
   $('#coins').textContent=save.coins+G.earned;
-  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':(me.alive&&!G.meetingUsed&&(G.meetCd||0)>0&&dist(me,EMERG)<70)?'MEET '+Math.ceil(G.meetCd):u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':(me.glitch&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
+  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':(me.alive&&!G.meetingUsed&&(G.meetCd||0)>0&&dist(me,EMERG)<70)?'MEET '+Math.ceil(G.meetCd):u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':((me.glitch||me.eng)&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
   $('#repBtn').disabled=!(me.alive&&me.inVent==null&&nearBody(me,110));
   const sb=$('#scanBtn');
   if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
@@ -2479,7 +2486,15 @@ function renderPal(box){
 }
 const ZAPS=[5,10,15,20,22,25,30,35,40,45,50,55,60];
 function zapSec(){if(!save.zapSetV2){save.zapSec=22;save.zapSetV2=true}return ZAPS.includes(save.zapSec)?save.zapSec:22}
+let G_ENG=0;
 function glCount(){return save.glitches===2?2:1}
+function engCount(){return [0,1,2].includes(save.engineers)?save.engineers:0}
+function renderEng(box,canEdit){
+  if(!box)return;const v=canEdit?engCount():(NET.eng||0);
+  if(!canEdit){box.innerHTML=`<span>Engineers</span><b>${v}</b>`;return}
+  box.innerHTML='<span>Engineers</span>'+[0,1,2].map(n=>`<button data-e="${n}" class="${v===n?'on':''}">${n}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.engineers=+b.dataset.e;persist();renderEng(box,true);if(NET.mode==='host')sendLobby()});
+}
 function renderGl(box,canEdit){
   if(!box)return;const v=canEdit?glCount():(NET.gl||1);
   if(!canEdit){box.innerHTML=`<span>Glitches</span><b>${v}</b>`;return}
@@ -2504,7 +2519,7 @@ function renderLobby(){
   $('#plist').innerHTML=list.map((p,i)=>`<div class="prow"><canvas width="68" height="68" data-i="${i}"></canvas>${esc(p.name)}<span class="tag">${i===0?'Squad leader':'Ready'}</span></div>`).join('')+(list.length<MAXP?`<div class="prow empty">${MAXP-list.length} open spot${MAXP-list.length>1?'s':''} · robots fill in</div>`:'');
   $('#plist').querySelectorAll('canvas').forEach(c=>drawAva(c,list[+c.dataset.i]));
   drawAva($('#lobbyAva'),save);$('#lobbyMyName').textContent=cleanName(save.name);
-  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderGl($('#glLobby'),host);renderPal($('#palLobby'));
+  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderGl($('#glLobby'),host);renderEng($('#engLobby'),host);renderPal($('#palLobby'));
   $('#lobbyStart').hidden=!host;
   $('#lobbyStatus').textContent=host?'Tell your friends to open boltsquadgames.com, tap Play with Friends, then Join and type this code.':'You\'re in! Customize your robot while you wait for the squad leader to start.';
 }
