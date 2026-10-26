@@ -97,6 +97,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .qb.saw{border-color:#ff4d6d!important}
 .meetmap{font:700 13px 'Chakra Petch',sans-serif;background:#123653;color:#e8f4f8;border:2px solid #3ad1b8;border-radius:10px;padding:6px 10px;margin-right:8px}
 .pprev{display:grid;gap:4px;justify-items:center;flex:none}.pendtag{display:inline-block;background:#ffd166;color:#2a1f00;font:700 11px 'Chakra Petch',sans-serif;border-radius:999px;padding:2px 8px;margin-right:4px}.apptag{display:inline-block;background:#3ad1b8;color:#032a24;font:700 11px 'Chakra Petch',sans-serif;border-radius:999px;padding:2px 8px;margin-right:4px}
+.pbank{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 10px}.pbank button{position:relative;width:58px;height:58px;border-radius:12px;border:2px solid var(--line);padding:0;overflow:hidden;background:#081a2a}.pbank button.on{border-color:var(--sun);box-shadow:0 0 0 2px var(--sun)}.pbank img{width:100%;height:100%;object-fit:cover;display:block}.pbank .bt{position:absolute;left:0;right:0;bottom:0;font:700 9px 'Chakra Petch',sans-serif;background:rgba(0,0,0,.65);color:#fff;text-align:center;padding:1px 0}.pbank .bt.ok{background:#3ad1b8;color:#032a24}.pbank .bt.wait{background:#ffd166;color:#2a1f00}
+#edCv{display:block;width:min(100%,280px);aspect-ratio:1;margin:0 auto 10px;border-radius:14px;background:#081a2a;touch-action:none;cursor:grab}
+.edrow{display:flex;gap:10px;align-items:center;margin-bottom:10px}.edrow span{font-weight:700;font-size:13px;color:var(--muted)}.edrow input{flex:1;accent-color:#ffd166}.edrow .big{padding:8px 14px;font-size:18px}
+.edfilters{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-bottom:12px}.edfilters button{border:2px solid var(--line);background:var(--deep);color:inherit;border-radius:10px;padding:4px 2px;font:700 11px 'Chakra Petch',sans-serif;display:grid;gap:3px;justify-items:center}.edfilters button.on{border-color:var(--sun)}.edfilters canvas{width:40px;height:40px;border-radius:8px}
+.savecode{font:400 26px Bungee,sans-serif;letter-spacing:.12em;color:var(--sun);text-align:center;background:#081a2a;border-radius:10px;padding:8px}
+#restoreBox{display:grid;gap:8px}#restoreIn{font:600 18px 'Chakra Petch',sans-serif;text-transform:uppercase;letter-spacing:.1em;padding:10px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--ink);text-align:center}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -443,12 +449,18 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <div class="hats" id="hats"></div>
       <div id="hatColBox"><h3 id="hatColTitle">HAT COLOR</h3><div class="swatches" id="hatCols"></div></div>
       <h3>PHOTO FACE</h3>
-      <p class="note">Put any picture on your robot's face, like your pet. Only you can see it. Other players see your normal robot.</p>
+      <p class="note">Put any picture on your robot's face, like your pet. Save up to 8 in your photo bank and tap one to wear it. Only you can see it unless a grown-up approves it.</p>
       <div class="photorow"><div class="pprev"><canvas id="photoPrev" width="160" height="160" aria-label="Your robot with the photo face"></canvas><span class="pendtag" id="photoPend" hidden>Pending approval</span></div>
         <div class="photobtns"><label class="big ghost" for="photoIn" id="photoPick">Choose picture</label><input type="file" id="photoIn" accept="image/*" hidden>
-        <button class="big ghost" id="photoToggle" hidden>Photo face: On</button><button class="big ghost" id="photoRemove" hidden>Remove picture</button></div></div>
-      <p class="note" style="font-size:12px">Free while we're testing. It will cost $0.99 when the game launches.</p>
-      <div class="pubbox" id="pubBox" hidden><b>Let everyone see it</b><span id="pubStatus">A grown-up checks every picture before other players can see it. Free while testing, $2.99 at launch.</span><button class="big ghost" id="pubSend">Send for approval</button></div>
+        <button class="big ghost" id="photoEdit" hidden>Edit picture</button><button class="big ghost" id="photoToggle" hidden>Photo face: On</button><button class="big ghost" id="photoRemove" hidden>Remove picture</button></div></div>
+      <div class="pbank" id="photoBank"></div>
+      <p class="note" style="font-size:12px">Free while we're testing. At launch: $0.99 per picture.</p>
+      <div class="pubbox" id="pubBox" hidden><b>Let everyone see it</b><span id="pubStatus">A grown-up checks every picture before other players can see it. Free while testing. At launch: $2.99 each, or packs of 5 for $9.99 and 10 for $14.99.</span><button class="big ghost" id="pubSend">Send for approval</button></div>
+      <h3>SAVE YOUR PROGRESS</h3>
+      <div class="pubbox" id="cloudBox"><b>Your save code</b><span>Your coins, points, skins and photos are backed up online. On a new phone, tap <b>Restore</b> and type this code.</span>
+        <div class="savecode" id="saveCode">·····</div><span id="cloudStatus" class="note" style="margin:0"></span>
+        <div class="row2"><button class="big ghost" id="copySave">Copy code</button><button class="big ghost" id="restoreBtn">Restore</button></div>
+        <div id="restoreBox" hidden><input id="restoreIn" maxlength="14" placeholder="Type your save code" autocomplete="off" aria-label="Save code"><button class="big" id="restoreGo">Load my save</button></div></div>
       <h3>HELP</h3>
       <label class="cbrow" for="cbTags"><input type="checkbox" id="cbTags"> Show color names (for color blindness)</label>
       <div class="pass">
@@ -478,6 +490,17 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <div class="ideacount"><span id="ideaStatus"></span><span id="ideaCount">0/600</span></div>
       <div class="row2"><button class="big ghost" id="ideaMic">🎤 Talk</button><button class="big" id="ideaSend">Send idea</button></div>
       <p class="note" style="margin-top:10px;font-size:12px">Please don't put your real name, address or phone number in your idea.</p>
+    </div>
+  </div>
+  <div class="screen dim" id="photoEd" hidden>
+    <div class="panel" style="max-width:420px">
+      <button class="x" id="edClose" aria-label="Close">×</button>
+      <h2>Edit Picture</h2>
+      <p class="note" style="margin-bottom:8px">Drag to move it. Use the slider to zoom. The bright box is what shows on your robot.</p>
+      <canvas id="edCv" width="240" height="240" aria-label="Picture editor"></canvas>
+      <div class="edrow"><span>Zoom</span><input type="range" id="edZoom" min="1" max="4" step="0.05" value="1" aria-label="Zoom"><button class="big ghost" id="edRot" aria-label="Turn picture">↻</button></div>
+      <div class="edfilters" id="edFilters"></div>
+      <div class="row2"><button class="big ghost" id="edCancel">Cancel</button><button class="big" id="edSave">Save to my bank</button></div>
     </div>
   </div>
   <div class="screen dim" id="how" hidden>
@@ -800,8 +823,8 @@ function hostSquad(){
 }
 function freeColor(want,self){const used=NET.lobby.filter(p=>p!==self).map(p=>p.color);if(ALL_PAINTS.includes(want)&&!used.includes(want))return want;return COLS().find(c=>!used.includes(c))||COLS()[0]}
 function okHat(h){const[b,c]=String(h||'').split('|');if(!HAT_IDS.includes(b))return'antenna';return c&&HCOLS.some(x=>x.id===c)?b+'|'+c:b}
-function myFp(){return save.photoOn&&save.photo&&save.facePub?save.pid:''}
-function avatarFrom(m){return{fp:(typeof m.fp==='string'&&/^[a-z0-9]{6,24}$/.test(m.fp))?m.fp:(m===save?myFp():''),hat:okHat(m.hat),visor:VISOR_IDS.includes(m.visor)?m.visor:'#5ff0ff'}}
+function myFp(){return save.photoOn&&save.photo&&save.facePub?(typeof curDoc==='function'?curDoc():save.pid):''}
+function avatarFrom(m){return{fp:(typeof m.fp==='string'&&/^[a-z0-9-]{6,24}$/.test(m.fp))?m.fp:(m===save?myFp():''),hat:okHat(m.hat),visor:VISOR_IDS.includes(m.visor)?m.visor:'#5ff0ff'}}
 function hostData(conn,m){
   if(!m||typeof m!=='object')return;
   if(m.t==='hello'){
@@ -2212,7 +2235,7 @@ $('#menuBtn').onclick=()=>{G=null;leaveNet();showMenu()};
 
 /* ================= menu, lobby, shop ================= */
 document.body.appendChild($('#sabUI'));document.body.appendChild($('#mapUI'));$('#meetMap').onclick=openMap;document.body.appendChild($('#ventUI'));
-function hideAll(){closeMap();try{closeCams()}catch(e){}try{$('#lb').hidden=true}catch(e){}$('#sabUI').hidden=true;$('#ventUI').hidden=true;try{closeIdea()}catch(e){}$('#coach').hidden=true;document.body.classList.remove('tutoring');['#tutAsk','#menu','#shop','#how','#task','#meeting','#eject','#end','#online','#lobby','#leaveConfirm'].forEach(s=>$(s).hidden=true)}
+function hideAll(){closeMap();try{$('#photoEd').hidden=true}catch(e){}try{closeCams()}catch(e){}try{$('#lb').hidden=true}catch(e){}$('#sabUI').hidden=true;$('#ventUI').hidden=true;try{closeIdea()}catch(e){}$('#coach').hidden=true;document.body.classList.remove('tutoring');['#tutAsk','#menu','#shop','#how','#task','#meeting','#eject','#end','#online','#lobby','#leaveConfirm'].forEach(s=>$(s).hidden=true)}
 function showMenu(){hideAll();$('#hud').hidden=true;$('#menu').hidden=false;renderDiff($('#diffMenu'),true);renderPal($('#palMenu'));
   $('#menuCoins').textContent=save.coins;$('#stWins').textContent=save.wins+' win'+(save.wins===1?'':'s');$('#stGames').textContent=save.games+' game'+(save.games===1?'':'s')}
 let afterTut=null;
@@ -2303,6 +2326,30 @@ async function renderLb(quiet){
 $('#lbTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{lbPeriod=b.dataset.p;renderLb()});
 let lbAuto=null;
 $('#openLb').onclick=()=>{$('#lb').hidden=false;renderLb();clearInterval(lbAuto);lbAuto=setInterval(()=>{if($('#lb').hidden){clearInterval(lbAuto);return}renderLb(true)},8000)};$('#lbClose').onclick=()=>{$('#lb').hidden=true};
+const SAVE_ALPH='ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+if(!save.saveCode){const a=crypto.getRandomValues(new Uint8Array(10));save.saveCode=Array.from(a,b=>SAVE_ALPH[b%SAVE_ALPH.length]).join('');try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}
+const fmtCode=c=>c.slice(0,4)+'-'+c.slice(4,7)+'-'+c.slice(7);
+let cloudT=null,cloudBusy=false;
+function cloudSave(soon){clearTimeout(cloudT);cloudT=setTimeout(cloudPush,soon?1500:8000)}
+async function cloudPush(){
+  if(cloudBusy||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;cloudBusy=true;
+  const data=JSON.stringify(save);
+  try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/saves/${save.saveCode}`,fields:{data:{stringValue:data}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
+    if(r.ok){save.cloudAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}}catch(e){}
+  cloudBusy=false;renderCloud();
+}
+function renderCloud(){const b=$('#saveCode');if(!b)return;b.textContent=fmtCode(save.saveCode);$('#cloudStatus').textContent=save.cloudAt?'Backed up '+new Date(save.cloudAt).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'.':'Not backed up yet. It backs up after your next game.'}
+$('#copySave').onclick=()=>{const c=fmtCode(save.saveCode);try{navigator.clipboard.writeText(c).then(()=>toast('Save code copied: '+c),()=>toast('Your save code: '+c))}catch(e){toast('Your save code: '+c)}};
+$('#restoreBtn').onclick=()=>{$('#restoreBox').hidden=!$('#restoreBox').hidden};
+$('#restoreGo').onclick=async()=>{
+  const code=$('#restoreIn').value.toUpperCase().replace(/[^A-Z0-9]/g,'');if(code.length!==10){toast('A save code has 10 letters and numbers.');return}
+  try{const r=await fetch(FS+'/saves/'+code);if(!r.ok){toast(r.status===404?'No save found with that code. Check it and try again.':'Could not load. Check your internet.');return}
+    const j=await r.json(),d=JSON.parse(j.fields.data.stringValue);if(!d||typeof d!=='object')throw 0;
+    Object.keys(save).forEach(k=>delete save[k]);Object.assign(save,d,{saveCode:code});try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}
+    toast('Save loaded! Welcome back, '+cleanName(save.name)+'.',3);setTimeout(()=>location.reload(),1200)}catch(e){toast('That save could not be loaded.')}
+};
+const _persist0=persist;persist=function(){_persist0();cloudSave(false)};
+setTimeout(()=>{if(!save.cloudAt||Date.now()-save.cloudAt>60000)cloudPush()},4000);
 $('#openHow').onclick=()=>{$('#how').hidden=false};
 $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
@@ -2363,6 +2410,10 @@ function tryGet(key,item,apply){
   persist();return true;
 }
 let PHOTO_IMG=null;
+if(!Array.isArray(save.photos)){save.photos=save.photo?[{id:'',img:save.photo,pub:!!save.facePub,ver:save.faceVer||0}]:[];save.photoSel=save.photos.length?0:-1;try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}
+function curPhoto(){return save.photos[save.photoSel]||null}
+function curDoc(){const p=curPhoto();return p&&p.id?save.pid+'-'+p.id:save.pid}
+function syncCur(){const p=curPhoto();save.photo=p?p.img:null;save.facePub=p?!!p.pub:false;save.faceVer=p?p.ver:0;persist();loadPhoto()}
 function loadPhoto(){PHOTO_IMG=null;if(save.photo){const im=new Image();im.onload=()=>{PHOTO_IMG=im;if(!$('#shop').hidden)renderPhoto()};im.src=save.photo}}
 function myPhoto(){return save.photoOn&&PHOTO_IMG?PHOTO_IMG:null}
 loadPhoto();
@@ -2373,7 +2424,7 @@ function notify(subject,text){
 }
 const FACES={};
 function facePhoto(e){
-  if(!e||!e.fp)return null;if(e.fp===save.pid)return myPhoto();
+  if(!e||!e.fp)return null;if(e.fp===save.pid||String(e.fp).startsWith(save.pid+'-'))return myPhoto();
   let f=FACES[e.fp];const now=performance.now();
   if(!f||(f.state==='none'&&now-f.t>60000)){f=FACES[e.fp]={state:'loading',img:null,t:now};
     fetch(FS+'/faces/'+e.fp).then(r=>r.ok?r.json():null).then(j=>{const fl=j&&j.fields;if(!fl||fl.status?.stringValue!=='approved'||+(fl.reports?.integerValue||0)>0||!fl.img?.stringValue){f.state='none';f.t=performance.now();return}
@@ -2389,35 +2440,93 @@ document.addEventListener('click',ev=>{const r=ev.target.closest&&ev.target.clos
 async function refreshPub(){
   const box=$('#pubBox');box.hidden=!save.photo;if(!save.photo)return;const st=$('#pubStatus'),btn=$('#pubSend');
   $('#photoPend').hidden=true;
-  if(!save.facePub){st.textContent='A grown-up checks every picture before other players can see it. Free while testing, $2.99 at launch.';btn.hidden=false;btn.textContent='Send for approval';return}
+  if(!save.facePub){st.textContent='A grown-up checks every picture before other players can see it. Free while testing. At launch: $2.99 each, or packs of 5 for $9.99 and 10 for $14.99.';btn.hidden=false;btn.textContent='Send for approval';return}
   btn.hidden=true;st.innerHTML='<span class="pendtag">Pending approval</span> A grown-up will check your picture soon. Only you can see it until then.';$('#photoPend').hidden=false;
-  try{const r=await fetch(FS+'/faceStatus/'+save.pid);if(!r.ok)return;const fl=(await r.json()).fields||{};if(String(fl.ver?.integerValue||'')!==String(save.faceVer))return;
+  try{const r=await fetch(FS+'/faceStatus/'+curDoc());if(!r.ok)return;const fl=(await r.json()).fields||{};if(String(fl.ver?.integerValue||'')!==String(save.faceVer))return;
     const s=fl.status?.stringValue;if(s==='approved'){$('#photoPend').hidden=true;st.innerHTML='<span class="apptag">Approved</span> Everyone in your games can see your photo face.'}
-    else if(s==='denied'){$('#photoPend').hidden=true;save.facePub=false;persist();st.textContent='That picture was not approved. Try a different one.';btn.hidden=false;btn.textContent='Send a new picture'}}catch(e){}
+    else if(s==='denied'){$('#photoPend').hidden=true;save.facePub=false;{const p=curPhoto();if(p)p.pub=false}persist();st.textContent='That picture was not approved. Try a different one.';btn.hidden=false;btn.textContent='Send a new picture'}}catch(e){}
 }
 $('#pubSend').onclick=async()=>{
   if(!save.photo)return;const ver=Date.now();$('#pubSend').disabled=true;$('#pubStatus').textContent='Sending...';
   const fields={img:{stringValue:save.photo},name:{stringValue:cleanName(save.name).slice(0,15)},status:{stringValue:'pending'},reports:{integerValue:'0'},ver:{integerValue:String(ver)}};
-  try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/faces/${save.pid}`,fields},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
-    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;persist();sendAvatar();refreshPub();notify('Bolt Squad: new picture to approve',`${cleanName(save.name)} sent a photo face for approval.\n\nReview it here: https://boltsquadgames.com/review.html`)}
+  try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/faces/${curDoc()}`,fields},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
+    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;{const p=curPhoto();if(p){p.pub=true;p.ver=ver}}persist();sendAvatar();refreshPub();notify('Bolt Squad: new picture to approve',`${cleanName(save.name)} sent a photo face for approval.\n\nReview it here: https://boltsquadgames.com/review.html`)}
   catch(e){$('#pubStatus').textContent='Could not send. Wait a minute and try again.'}
   $('#pubSend').disabled=false;
 };
 function renderPhoto(){
-  const has=!!save.photo;$('#photoToggle').hidden=!has;$('#photoRemove').hidden=!has;$('#photoPick').textContent=has?'Change picture':'Choose picture';
+  const has=!!save.photo;$('#photoToggle').hidden=!has;$('#photoRemove').hidden=!has;$('#photoEdit').hidden=!has;$('#photoPick').textContent=save.photos.length?'＋ Add picture':'Choose picture';renderBank();
   $('#photoToggle').textContent='Photo face: '+(save.photoOn?'On':'Off');
   const c=$('#photoPrev').getContext('2d');c.setTransform(1,0,0,1,0,0);c.clearRect(0,0,160,160);c.translate(80,104);c.scale(3,3);drawBot(c,0,0,save.color,save.hat,1,'ok',0,false,save.visor,has?PHOTO_IMG:null);
 }
+const FILTERS=[['none','Normal'],['bright','Bright'],['pop','Pop'],['warm','Warm'],['cool','Cool'],['bw','B&W'],['vintage','Vintage'],['cartoon','Cartoon'],['comic','Comic'],['neon','Neon']];
+const ED={img:null,zoom:1,ox:0,oy:0,rot:0,filter:'none',drag:null};
+function applyFilter(ctx,w,h,f){
+  if(f==='none')return;const im=ctx.getImageData(0,0,w,h),d=im.data;
+  const cl=v=>v<0?0:v>255?255:v;
+  for(let i=0;i<d.length;i+=4){let r=d[i],g=d[i+1],b=d[i+2];const l=0.299*r+0.587*g+0.114*b;
+    if(f==='bright'){r=r*1.1+22;g=g*1.1+22;b=b*1.1+22}
+    else if(f==='pop'){r=l+(r-l)*1.7;g=l+(g-l)*1.7;b=l+(b-l)*1.7;r=(r-128)*1.15+128;g=(g-128)*1.15+128;b=(b-128)*1.15+128}
+    else if(f==='warm'){r+=28;g+=8;b-=22}
+    else if(f==='cool'){r-=18;g+=4;b+=30}
+    else if(f==='bw'){r=g=b=(l-128)*1.15+128}
+    else if(f==='vintage'){r=l*1.07+30;g=l*0.9+18;b=l*0.7}
+    else if(f==='cartoon'){const q=v=>Math.round(v/51)*51;r=l+(r-l)*1.5;g=l+(g-l)*1.5;b=l+(b-l)*1.5;r=q(cl(r));g=q(cl(g));b=q(cl(b))}
+    else if(f==='comic'){const v=l>150?255:l>85?150:30;r=g=b=v}
+    else if(f==='neon'){r=255-r;g=255-g;b=255-b;const l2=0.299*r+0.587*g+0.114*b;r=l2+(r-l2)*2;g=l2+(g-l2)*2;b=l2+(b-l2)*2}
+    d[i]=cl(r);d[i+1]=cl(g);d[i+2]=cl(b)}
+  if(f==='cartoon'||f==='comic'){const src=new Uint8ClampedArray(d);const L=(x,y)=>{const k=(y*w+x)*4;return 0.299*src[k]+0.587*src[k+1]+0.114*src[k+2]};
+    for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const gx=L(x+1,y)-L(x-1,y),gy=L(x,y+1)-L(x,y-1);if(gx*gx+gy*gy>(f==='comic'?2600:3400)){const k=(y*w+x)*4;d[k]=d[k+1]=d[k+2]=20}}}
+  ctx.putImageData(im,0,0);
+}
+function edDraw(ctx,size,f){
+  const im=ED.img;if(!im)return;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,size,size);
+  const base=size/Math.min(im.width,im.height),k=base*ED.zoom;
+  ctx.translate(size/2,size/2);ctx.rotate(ED.rot);ctx.scale(k,k);ctx.drawImage(im,-im.width/2-ED.ox,-im.height/2-ED.oy);ctx.setTransform(1,0,0,1,0,0);
+  applyFilter(ctx,size,size,f);
+}
+function edRender(){
+  const c=$('#edCv').getContext('2d');edDraw(c,240,ED.filter);
+  const y0=240*4/26,y1=240*23/26;c.fillStyle='rgba(0,0,0,.45)';c.fillRect(0,0,240,y0);c.fillRect(0,y1,240,240-y1);
+  c.setLineDash([6,5]);c.strokeStyle='#ffd166';c.lineWidth=2;c.strokeRect(2,y0,236,y1-y0);c.setLineDash([]);
+}
+function edThumbs(){
+  const box=$('#edFilters');box.innerHTML=FILTERS.map(([k,n])=>`<button data-f="${k}" class="${ED.filter===k?'on':''}"><canvas width="40" height="40"></canvas>${n}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>{const c=b.querySelector('canvas').getContext('2d');edDraw(c,40,b.dataset.f);b.onclick=()=>{ED.filter=b.dataset.f;box.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));edRender()}});
+}
+function openEditor(img){Object.assign(ED,{img,zoom:1,ox:0,oy:0,rot:0,filter:'none'});$('#edZoom').value=1;$('#photoEd').hidden=false;edRender();edThumbs()}
+function closeEditor(){$('#photoEd').hidden=true;ED.img=null}
+$('#edZoom').addEventListener('input',e=>{ED.zoom=+e.target.value;edRender()});
+$('#edRot').onclick=()=>{ED.rot+=Math.PI/2;edRender();edThumbs()};
+$('#edCv').addEventListener('pointerdown',e=>{ED.drag={x:e.clientX,y:e.clientY};try{$('#edCv').setPointerCapture(e.pointerId)}catch(_){}});
+$('#edCv').addEventListener('pointermove',e=>{if(!ED.drag||!ED.img)return;const r=$('#edCv').getBoundingClientRect(),sc=240/r.width,dx=(e.clientX-ED.drag.x)*sc,dy=(e.clientY-ED.drag.y)*sc;ED.drag={x:e.clientX,y:e.clientY};
+  const k=240/Math.min(ED.img.width,ED.img.height)*ED.zoom,cs=Math.cos(-ED.rot),sn=Math.sin(-ED.rot);ED.ox-=(dx*cs-dy*sn)/k;ED.oy-=(dx*sn+dy*cs)/k;edRender()});
+const edUp=()=>{if(ED.drag){ED.drag=null;edThumbs()}};$('#edCv').addEventListener('pointerup',edUp);$('#edCv').addEventListener('pointercancel',edUp);
+$('#edCancel').onclick=closeEditor;$('#edClose').onclick=closeEditor;
+$('#edSave').onclick=()=>{
+  if(!ED.img)return;if(save.photos.length>=8&&!ED.replace){toast('Your photo bank is full (8). Remove one first.',3);return}
+  const out=document.createElement('canvas');out.width=out.height=160;edDraw(out.getContext('2d'),160,ED.filter);
+  let img;try{img=out.toDataURL('image/jpeg',0.85)}catch(err){toast('That picture did not work. Try another one.');return}
+  const id=Math.random().toString(36).slice(2,6);save.photos.push({id,img,pub:false,ver:0});save.photoSel=save.photos.length-1;save.photoOn=true;syncCur();
+  closeEditor();renderShop();sendAvatar();toast('Saved to your photo bank! Only you can see it.');
+};
+const BANKCHK=new Set();
+function renderBank(){
+  const box=$('#photoBank');if(!box)return;
+  box.innerHTML=save.photos.map((p,i)=>`<button data-i="${i}" class="${i===save.photoSel?'on':''}" aria-label="Photo ${i+1}"><img alt="" src="${p.img}"><span class="bt ${p.st==='approved'?'ok':p.pub?'wait':''}">${p.st==='approved'?'Approved':p.pub?'Pending':'Only you'}</span></button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.photoSel=+b.dataset.i;save.photoOn=true;syncCur();renderShop();sendAvatar()});
+  save.photos.forEach((p,i)=>{if(!p.pub||p.st==='approved'||BANKCHK.has(p.id+p.ver))return;BANKCHK.add(p.id+p.ver);const doc=p.id?save.pid+'-'+p.id:save.pid;fetch(FS+'/faceStatus/'+doc).then(r=>r.ok?r.json():null).then(j=>{const fl=j&&j.fields;if(fl&&String(fl.ver?.integerValue||'')===String(p.ver)){p.st=fl.status?.stringValue;if(p.st==='denied')p.pub=false;persist();renderBank()}}).catch(()=>{})});
+}
+$('#photoEdit').onclick=()=>{const p=curPhoto();if(!p)return;const im=new Image();im.onload=()=>openEditor(im);im.src=p.img};
 $('#photoIn').addEventListener('change',e=>{
   const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
   if(!/^image\//.test(f.type)){toast('Pick a picture file.');return}
   const url=URL.createObjectURL(f),im=new Image();
-  im.onload=()=>{const s=Math.min(im.width,im.height),cv3=document.createElement('canvas');cv3.width=cv3.height=128;const x=cv3.getContext('2d');x.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);URL.revokeObjectURL(url);
-    try{save.photo=cv3.toDataURL('image/jpeg',0.82);save.photoOn=true;save.facePub=false;persist();loadPhoto();refreshPub();sendAvatar();toast('Photo face is on! Only you can see it.')}catch(err){toast('That picture did not work. Try another one.')}};
+  im.onload=()=>{const s=Math.max(im.width,im.height),k=Math.min(1,1200/s),cv3=document.createElement('canvas');cv3.width=Math.round(im.width*k);cv3.height=Math.round(im.height*k);cv3.getContext('2d').drawImage(im,0,0,cv3.width,cv3.height);URL.revokeObjectURL(url);const im2=new Image();im2.onload=()=>openEditor(im2);im2.src=cv3.toDataURL('image/jpeg',0.9)};
   im.onerror=()=>{URL.revokeObjectURL(url);toast('That picture did not work. Try another one.')};im.src=url;
 });
 $('#photoToggle').onclick=()=>{save.photoOn=!save.photoOn;persist();renderPhoto();sendAvatar()};
-$('#photoRemove').onclick=()=>{save.photo=null;save.photoOn=false;save.facePub=false;persist();loadPhoto();renderPhoto();refreshPub();sendAvatar()};
+$('#photoRemove').onclick=()=>{if(save.photoSel<0)return;save.photos.splice(save.photoSel,1);save.photoSel=Math.min(save.photoSel,save.photos.length-1);if(save.photoSel<0)save.photoOn=false;syncCur();renderShop();sendAvatar()};
 function renderShop(){
   $('#shopCoins').textContent=save.coins;$('#nameIn').value=save.name;
   const nx=nextReward(),pts=save.points||0;
@@ -2441,7 +2550,7 @@ function renderShop(){
     const cur=hatTint(save.hat),opts=[{id:'',n:'Normal',c:HAT_DEF[base]}].concat(HCOLS.map(x=>({id:x.id,n:x.n,c:x.id})));
     $('#hatCols').innerHTML=opts.map(o=>{const locked=false;const on=(o.id?save.hat===base+'|'+o.id:save.hat===base);return`<button class="sw${on?' on':''}${locked?' locked':''}" style="--c:${o.c}" data-o="${o.id}" aria-label="${o.n} ${base}">${locked?`<small>${HCOL_COST}c</small>`:cn(o.id||'n',o.n)}</button>`}).join('');
     $('#hatCols').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const id=b.dataset.o;if(!id){save.hat=base;persist();renderShop();return}save.hat=base+'|'+id;persist();renderShop()})}
-  renderPhoto();refreshPub();
+  renderPhoto();refreshPub();renderCloud();
   $('#cbTags').checked=!!save.cbTags;$('#cbTags').onchange=e=>{save.cbTags=e.target.checked;persist();renderShop()};
   $('#hats').querySelectorAll('.hat').forEach(b=>b.onclick=()=>{const h=HATS.find(x=>x.id===b.dataset.h);if(hatBase(save.hat)===h.id)return;tryGet(h.id,h,()=>{save.hat=h.id});renderShop()});
 }
