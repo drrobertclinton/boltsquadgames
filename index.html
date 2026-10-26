@@ -94,6 +94,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .pubbox{display:grid;gap:6px;background:#0c2a42;border:1px dashed var(--line);border-radius:12px;padding:10px;margin-bottom:12px;font-size:13px}.pubbox b{font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}.pubbox .big{font-size:13px;padding:10px}
 .repflag{position:absolute;top:4px;right:6px;font-size:14px;color:#ff8fb8;cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(0,0,0,.35)}.vc{position:relative}
 .zapset .zarrow{width:40px;padding:6px 0!important;font-size:15px}.zapset .zarrow:disabled{opacity:.35}.zapset .zval{min-width:64px;text-align:center;font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}
+.qb.saw{border-color:#ff4d6d!important}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -523,7 +524,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
         <div class="meettip" id="meetTip" hidden></div>
         <div class="chat" id="chat"></div>
         <div class="quick" id="quick">
-          <div class="qlabel">1. Tap a player</div><div class="qchips" id="qTarget"></div><div class="qlabel">Room (for “I found the body in…” and “I was in…”)</div><div class="qchips" id="qRoom"></div><div class="qlabel">2. Tap what to say</div>
+          <div class="qlabel">1. Tap a player</div><div class="qchips" id="qTarget"></div><div class="qlabel">Room (for “I found the body in…” and “I was in…”)</div><div class="qchips" id="qRoom"></div><div class="qlabel">Who got zapped (for “I saw … zap …”)</div><div class="qchips" id="qVictim"></div><div class="qlabel">2. Tap what to say</div>
           <div class="qbtns" id="qBtns"></div>
         </div>
       </div>
@@ -613,8 +614,8 @@ const BAD=['fuck','shit','bitch','dick','cock','pussy','ass','sex','porn','nigg'
 function cleanName(n){n=String(n||'').replace(/[^\w .\-]/g,'').trim().slice(0,15);if(!n)n='Robot';const l=n.toLowerCase().replace(/[^a-z]/g,'');if(BAD.some(b=>l.includes(b)))n='Robot'+Math.floor(rand(10,99));return n}
 
 /* quick chat phrases: {X} = picked robot */
-const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!'];
-const quickText=(p,x,r)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{R}',r||'a hallway'):null;
+const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!'];
+const quickText=(p,x,r,y)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{Y}',y||'someone').replace('{R}',r||'a hallway'):null;
 
 /* ================= map ================= */
 const ROOMS=[
@@ -1023,8 +1024,9 @@ function hostAction(ent,type,d){
       if(G.state!=='meeting'||!ent.alive)return;
       const now=performance.now();if(now-(ent.lastChat||0)<1500)return;ent.lastChat=now;
       const room=Number.isInteger(d.r)&&ROOMS[d.r]?ROOMS[d.r].name:null;if((d.p===12||d.p===13)&&!room)return;
-      const text=quickText(d.p,target?target.name:null,room);if(!text)return;
-      broadcast({t:'chat',id:ent.id,text});botReact(ent,d.p,target,room);break;}
+      const victim=Number.isInteger(d.y)&&G.ents[d.y]?G.ents[d.y]:null;if(d.p===15&&(!target||!victim||victim===target))return;
+      const text=quickText(d.p,target?target.name:null,room,victim?victim.name:null);if(!text)return;
+      broadcast({t:'chat',id:ent.id,text});botReact(ent,d.p,target,room,victim);break;}
   }
 }
 
@@ -1906,14 +1908,15 @@ function botDiscussion(last){
     botSay(b,line,t);t+=rand(2600,4200);
   });
 }
-function botReact(spk,p,target,room){
+function botReact(spk,p,target,room,victim){
   if(G.reacts>=8)return;G.reacts++;
   const cred=S().cred,bots=aliveBots().filter(b=>b!==spk),tn=target?target.name:null;
   const other=(not)=>pick(bots.filter(b=>!not.includes(b)));
   let d=rand(1100,2000);
-  const accuse=p===0||p===2||p===3||p===14,defend=p===1||p===4||p===6;
+  const accuse=p===0||p===2||p===3||p===14||p===15,defend=p===1||p===4||p===6;
   if(accuse&&target){
-    const w=p===0?28:p===3||p===14?34:16;
+    const w=p===0?28:p===3||p===14||p===15?34:16;
+    if(p===15&&victim&&victim.alive){const r0=other([target,victim]);if(r0)botSay(r0,pick([`Wait, ${victim.name} is still awake!`,`${victim.name} isn't frozen though...`]),rand(900,1500));bots.forEach(b=>{if(!b.glitch)b.sus[spk.id]=(b.sus[spk.id]||0)+25*b.trust});if(!victim.human)botSay(victim,`I'm right here! Nobody zapped me.`,rand(1800,2600));return}
     bots.forEach(b=>{if(b!==target&&!b.glitch&&Math.random()<b.trust)b.sus[target.id]=(b.sus[target.id]||0)+w*0.6*cred*b.trust});
     if(!target.human&&target.alive){
       botSay(target,target.glitch?pick([`That's a lie! I bet ${spk.name} is the Glitch.`,`Me? I was fixing wires. ${spk.name} is lying.`]):pick([`It wasn't me! I was in ${whereOf(target)||'Central Hub'}.`,`No way. Scan me if you want.`,`I've been doing repairs this whole time!`]),d);
@@ -2073,14 +2076,17 @@ function renderQuick(){
   const others=G.ents.filter(e=>e!==G.me&&G.meetAlive.has(e.id));
   if(!others.some(e=>e.id===G.qPick))G.qPick=others.length?others[0].id:null;
   if(G.qRoom==null)G.qRoom=0;
+  const vict=G.ents.filter(e=>!e.ejected&&e!==G.me);if(G.qVict==null||!vict.some(e=>e.id===G.qVict)){const f=G.ents.filter(e=>!e.alive&&!e.ejected&&e.bodyFound);G.qVict=(f.length?f[f.length-1]:vict[0]||{}).id}
   const draw=()=>{
     $('#qTarget').innerHTML=others.map(e=>`<button class="qchip${e.id===G.qPick?' on':''}" data-id="${e.id}"><i style="--c:${e.color}"></i>${esc(e.name)}</button>`).join('');
     $('#qTarget').querySelectorAll('.qchip').forEach(b=>b.onclick=()=>{G.qPick=+b.dataset.id;draw()});
     $('#qRoom').innerHTML=ROOMS.map((r,i)=>`<button class="qchip${i===G.qRoom?' on':''}" data-r="${i}">${esc(r.name)}</button>`).join('');
     $('#qRoom').querySelectorAll('.qchip').forEach(b=>b.onclick=()=>{G.qRoom=+b.dataset.r;draw()});
-    const nm=G.qPick!=null?G.ents[G.qPick].name:'___',rn=ROOMS[G.qRoom].name;
-    $('#qBtns').innerHTML=QUICK.map((p,i)=>`<button class="qb${i===12||i===13?' body':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn))}</button>`).join('');
-    $('#qBtns').querySelectorAll('.qb').forEach(b=>b.onclick=()=>{act('chat',{p:+b.dataset.p,v:G.qPick,r:G.qRoom});b.disabled=true;setTimeout(()=>b.disabled=false,1600)});
+    $('#qVictim').innerHTML=vict.map(e=>`<button class="qchip${e.id===G.qVict?' on':''}" data-id="${e.id}"><i style="--c:${e.color}"></i>${esc(e.name)}${e.alive?'':' ❄'}</button>`).join('');
+    $('#qVictim').querySelectorAll('.qchip').forEach(b=>b.onclick=()=>{G.qVict=+b.dataset.id;draw()});
+    const nm=G.qPick!=null?G.ents[G.qPick].name:'___',rn=ROOMS[G.qRoom].name,vn=G.qVict!=null&&G.ents[G.qVict]?G.ents[G.qVict].name:'___';
+    $('#qBtns').innerHTML=QUICK.map((p,i)=>`<button class="qb${i===12||i===13?' body':''}${i===15?' saw':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn).replace('{Y}',vn))}</button>`).join('');
+    $('#qBtns').querySelectorAll('.qb').forEach(b=>b.onclick=()=>{act('chat',{p:+b.dataset.p,v:G.qPick,r:G.qRoom,y:G.qVict});b.disabled=true;setTimeout(()=>b.disabled=false,1600)});
   };
   draw();
 }
