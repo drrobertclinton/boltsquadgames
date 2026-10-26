@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Bolt Squad Review</title>
+<link rel="icon" type="image/png" href="/icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:wght@500;600;700&display=swap">
+<style>
+:root{--bg:#04111e;--panel:#0c2840;--line:#24506b;--fg:#e8f4f8;--muted:#8fb6c7;--sun:#ffd166;--kelp:#3ad1b8;--danger:#ff4d6d;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:500 15px 'Chakra Petch',system-ui,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding-block:20px 60px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:18px}
+h1{font:400 clamp(24px,5vw,34px) Bungee,sans-serif;color:var(--sun);margin:0}
+h2{font:400 18px Bungee,sans-serif;margin:0 0 10px;color:var(--kelp)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+button{font:700 14px 'Chakra Petch',sans-serif;border-radius:10px;border:2px solid var(--line);background:#123653;color:var(--fg);padding:9px 14px;cursor:pointer}
+button.ok{background:var(--kelp);border-color:var(--kelp);color:#032a24}
+button.no{background:var(--danger);border-color:var(--danger);color:#2a0510}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.card{background:#081a2a;border:1px solid var(--line);border-radius:12px;padding:10px;display:grid;gap:8px}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;background:#000}
+.card .meta{font-size:12px;color:var(--muted)}
+.card .row{display:flex;gap:6px;flex-wrap:wrap}
+.flag{color:var(--danger);font-weight:700}
+.ideas{display:grid;gap:8px}
+.idea{background:#081a2a;border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:4px}
+.idea .meta{font-size:12px;color:var(--muted)}
+.empty{color:var(--muted)}
+#who{color:var(--muted);font-size:13px}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar"><h1>Bolt Squad Review</h1><div><span id="who"></span> <button id="signin">Sign in with Google</button> <button id="signout" hidden>Sign out</button></div></div>
+  <p id="msg" class="empty">Only Robert's Google account can use this page.</p>
+  <section id="secReported" hidden><h2>Reported pictures</h2><div class="grid" id="reported"></div></section>
+  <section id="secPending" hidden><h2>Pictures waiting for approval</h2><div class="grid" id="pending"></div></section>
+  <section id="secApproved" hidden><h2>Approved pictures</h2><div class="grid" id="approved"></div></section>
+  <section id="secIdeas" hidden><h2>Idea Box</h2><div class="ideas" id="ideas"></div></section>
+</div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({apiKey:"AIzaSyAWYvqOJkjm1zXFGVJmnnu7kUYF9fLbfSE",authDomain:"bolt-squad.firebaseapp.com",projectId:"bolt-squad",appId:"1:294046723169:web:74598fa66c27edc30f8e20"});
+const auth=firebase.auth(),db=firebase.firestore(),$=s=>document.querySelector(s);
+const ADMIN='drrobertclinton@gmail.com';
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const when=ts=>ts&&ts.toDate?ts.toDate().toLocaleString():'';
+$('#signin').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{$('#msg').textContent='Sign-in did not finish: '+e.message});
+$('#signout').onclick=()=>auth.signOut();
+auth.onAuthStateChanged(u=>{
+  const ok=u&&u.email===ADMIN;
+  $('#signin').hidden=!!u;$('#signout').hidden=!u;$('#who').textContent=u?u.email:'';
+  ['#secReported','#secPending','#secApproved','#secIdeas'].forEach(s=>$(s).hidden=!ok);
+  $('#msg').textContent=!u?"Only Robert's Google account can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old.':'This account cannot review pictures.';
+  if(ok)load();
+});
+async function setStatus(id,ver,status,clearReports){
+  const b=db.batch(),u={status};if(clearReports)u.reports=0;
+  b.update(db.collection('faces').doc(id),u);
+  b.set(db.collection('faceStatus').doc(id),{status,ver});
+  await b.commit();load();
+}
+function card(d,mode){
+  const f=d.data(),el=document.createElement('div');el.className='card';
+  el.innerHTML=`<img alt="Picture from ${esc(f.name)}" src="${esc(f.img)}"><div><b>${esc(f.name)}</b><div class="meta">${when(f.at)}${f.reports?` · <span class="flag">${f.reports} report${f.reports>1?'s':''}</span>`:''}</div></div><div class="row"></div>`;
+  const row=el.querySelector('.row'),btn=(t,c,fn)=>{const b=document.createElement('button');b.textContent=t;if(c)b.className=c;b.onclick=async()=>{b.disabled=true;try{await fn()}catch(e){alert(e.message)}};row.appendChild(b)};
+  if(mode!=='approved')btn('Approve','ok',()=>setStatus(d.id,f.ver,'approved',true));
+  if(mode==='reported')btn('Keep showing','ok',()=>setStatus(d.id,f.ver,'approved',true));
+  btn(mode==='approved'?'Take down':'Deny','no',()=>setStatus(d.id,f.ver,'denied',false));
+  return el;
+}
+async function load(){
+  const all=await db.collection('faces').get();
+  const rep=[],pen=[],app=[];
+  all.forEach(d=>{const f=d.data();if(f.status==='denied'||d.id.startsWith('zztest'))return;if(f.reports>0)rep.push(d);else if(f.status==='pending')pen.push(d);else if(f.status==='approved')app.push(d)});
+  const fill=(box,list,mode,emptyText)=>{box.innerHTML='';list.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0)).forEach(d=>box.appendChild(card(d,mode)));if(!list.length)box.innerHTML=`<p class="empty">${emptyText}</p>`};
+  fill($('#reported'),rep,'reported','Nothing reported.');fill($('#pending'),pen,'pending','No pictures waiting.');fill($('#approved'),app,'approved','None approved yet.');
+  const ideas=await db.collection('ideas').orderBy('at','desc').limit(200).get();
+  const ib=$('#ideas');ib.innerHTML='';
+  ideas.forEach(d=>{const f=d.data();if(d.id==='test-setup-1')return;const el=document.createElement('div');el.className='idea';el.innerHTML=`<div>${esc(f.text)}</div><div class="meta">${esc(f.from)} · ${when(f.at)}</div>`;ib.appendChild(el)});
+  if(!ib.children.length)ib.innerHTML='<p class="empty">No ideas yet.</p>';
+}
+</script>
+</body>
+</html>

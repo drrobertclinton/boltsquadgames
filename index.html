@@ -91,6 +91,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .lbtabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}.lbtabs button{border:2px solid var(--line);background:var(--deep);border-radius:10px;padding:8px 4px;font:700 12px 'Chakra Petch',sans-serif;color:inherit}.lbtabs button.on{background:var(--sun);border-color:var(--sun);color:#2a1f00}
 .lblist{list-style:none;margin:0;padding:0;display:grid;gap:6px;max-height:52vh;overflow:auto}.lblist li{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:8px;background:#0c2a42;border-radius:10px;padding:8px 10px;font-weight:600}.lblist li.me{outline:2px solid var(--sun)}.lblist .rk{font:400 15px Bungee,sans-serif;color:var(--muted)}.lblist li:nth-child(1) .rk{color:#ffd166}.lblist li:nth-child(2) .rk{color:#c9d6df}.lblist li:nth-child(3) .rk{color:#d9822b}.lblist .cn2{color:var(--sun);font-variant-numeric:tabular-nums}.lblist .empty{display:block;text-align:center;color:var(--muted);font-weight:500}
 .photorow{display:flex;gap:12px;align-items:center}.photorow canvas{width:80px;height:80px;border-radius:14px;background:#081a2a;border:2px solid var(--line);flex:none}.photobtns{display:grid;gap:8px;flex:1;min-width:0}.photobtns .big{font-size:13px;padding:10px 12px;text-align:center;cursor:pointer}
+.pubbox{display:grid;gap:6px;background:#0c2a42;border:1px dashed var(--line);border-radius:12px;padding:10px;margin-bottom:12px;font-size:13px}.pubbox b{font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}.pubbox .big{font-size:13px;padding:10px}
+.repflag{position:absolute;top:4px;right:6px;font-size:14px;color:#ff8fb8;cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(0,0,0,.35)}.vc{position:relative}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -430,6 +432,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
         <div class="photobtns"><label class="big ghost" for="photoIn" id="photoPick">Choose picture</label><input type="file" id="photoIn" accept="image/*" hidden>
         <button class="big ghost" id="photoToggle" hidden>Photo face: On</button><button class="big ghost" id="photoRemove" hidden>Remove picture</button></div></div>
       <p class="note" style="font-size:12px">Free while we're testing. It will cost $0.99 when the game launches.</p>
+      <div class="pubbox" id="pubBox" hidden><b>Let everyone see it</b><span id="pubStatus">A grown-up checks every picture before other players can see it. Free while testing, $2.99 at launch.</span><button class="big ghost" id="pubSend">Send for approval</button></div>
       <h3>HELP</h3>
       <label class="cbrow" for="cbTags"><input type="checkbox" id="cbTags"> Show color names (for color blindness)</label>
       <div class="pass">
@@ -765,7 +768,7 @@ function hostSquad(){
   showLobby('Starting your squad...');
   let p;try{p=new Peer(PEER_PREFIX+NET.code)}catch(e){onlineError(netErr(e));return}
   NET.peer=p;
-  p.on('open',()=>{NET.lobby=[{id:'host',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor,conn:null,local:true}];sendLobby()});
+  p.on('open',()=>{NET.lobby=[{id:'host',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor,fp:myFp(),conn:null,local:true}];sendLobby()});
   p.on('connection',conn=>{
     conn.on('data',m=>hostData(conn,m));
     conn.on('close',()=>hostDrop(conn));
@@ -775,7 +778,8 @@ function hostSquad(){
 }
 function freeColor(want,self){const used=NET.lobby.filter(p=>p!==self).map(p=>p.color);if(ALL_PAINTS.includes(want)&&!used.includes(want))return want;return COLS().find(c=>!used.includes(c))||COLS()[0]}
 function okHat(h){const[b,c]=String(h||'').split('|');if(!HAT_IDS.includes(b))return'antenna';return c&&HCOLS.some(x=>x.id===c)?b+'|'+c:b}
-function avatarFrom(m){return{hat:okHat(m.hat),visor:VISOR_IDS.includes(m.visor)?m.visor:'#5ff0ff'}}
+function myFp(){return save.photoOn&&save.photo&&save.facePub?save.pid:''}
+function avatarFrom(m){return{fp:(typeof m.fp==='string'&&/^[a-z0-9]{6,24}$/.test(m.fp))?m.fp:(m===save?myFp():''),hat:okHat(m.hat),visor:VISOR_IDS.includes(m.visor)?m.visor:'#5ff0ff'}}
 function hostData(conn,m){
   if(!m||typeof m!=='object')return;
   if(m.t==='hello'){
@@ -802,7 +806,7 @@ function hostDrop(conn){
   sendLobby();
 }
 function sendLobby(){
-  const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor}));
+  const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor,fp:p.fp||''}));
   NET.list=list;
   NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff})}catch(e){}}});
   if(!NET.inGame)renderLobby();
@@ -817,7 +821,7 @@ function joinSquad(code){
   NET.peer=p;
   p.on('open',()=>{
     const c=p.connect(PEER_PREFIX+code,{reliable:true});NET.hostConn=c;
-    c.on('open',()=>c.send({t:'hello',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor}));
+    c.on('open',()=>c.send({t:'hello',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor,fp:myFp()}));
     c.on('data',clientMsg);
     c.on('close',guestLost);
   });
@@ -834,7 +838,7 @@ function newGame(mode,role){
   const cols=shuffle(COLS().filter(c=>!used.has(c)));
   const names=shuffle(NAMES.filter(n=>!humans.some(h=>h.name===n)));
   const ents=[];
-  humans.forEach((h,i)=>ents.push({id:i,name:h.name,color:h.color,hat:h.hat,visor:h.visor,human:true,local:!!h.local,conn:h.conn||null}));
+  humans.forEach((h,i)=>ents.push({id:i,name:h.name,color:h.color,hat:h.hat,visor:h.visor,fp:h.fp||'',human:true,local:!!h.local,conn:h.conn||null}));
   while(ents.length<MAXP){const i=ents.length;ents.push({id:i,name:names.pop(),color:cols.pop()||pick(COLS()),hat:pick(['none','antenna','antenna','cap','headphones','propeller','fin','halo']),human:false,local:false,conn:null})}
   ents.forEach(e=>{Object.assign(e,{alive:true,glitch:false,tasks:[],done:new Set(),path:[],wait:0,face:1,moving:false,sus:{},task:null,goal:null,cleared:false,bodyFound:false,ejected:false,spot:0,scanCd:0,lastZapT:-999,bx:0,by:0,lastChat:0,trust:rand(0.15,1),scansLeft:2});if(e.conn)e.conn.ent=e});
   const hum=ents.filter(e=>e.human);
@@ -848,7 +852,7 @@ function newGame(mode,role){
   placeAtTable(ents);
   G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?12:20,sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
   NET.inGame=mode==='online';
-  const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,human:r.human}));
+  const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
   ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
   enterGameUI(G.me.glitch);
   if(mode==='tutorial')tutStart();
@@ -1685,8 +1689,8 @@ function drawWorld(t){
   G.ents.forEach(e=>{
     if(!e.alive&&!e.ejected&&!e.cleared&&canSee({x:e.bx,y:e.by}))draws.push({y:e.by,f:()=>drawBot(ctx,e.bx,e.by,e.color,e.hat,1,'frozen',t,false,e.visor)});
     if(e===me)return;
-    if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor);label(tagName(e),e.x,e.y-34,e.human?'#9ef0ff':'#e8f4f8')}});
-    else if(!e.alive&&!me.alive)draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ghost',t,e.moving,e.visor);if(e.human)label(tagName(e),e.x,e.y-34,'#9ef0ff')}});
+    if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));label(tagName(e),e.x,e.y-34,e.human?'#9ef0ff':'#e8f4f8')}});
+    else if(!e.alive&&!me.alive)draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ghost',t,e.moving,e.visor,facePhoto(e));if(e.human)label(tagName(e),e.x,e.y-34,'#9ef0ff')}});
   });
   draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent',me.x,me.y-34,'#ff4d6d');return}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());label(tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
   if(G.state==='play'||G.state==='task')G.ents.forEach(e=>{if(e._wa&&!e.alive&&!e.ejected){if(e===me||dist(e,me)<500)freezeBurst(e.bx||e.x,(e.by||e.y));if(e===me)G.deathFx=t}e._wa=e.alive});else G.ents.forEach(e=>{e._wa=e.alive});
@@ -2039,7 +2043,8 @@ function renderVotes(result){
     b.disabled=!meAlive||!alive||!!result||G.myVote==='locked';
     const dots=result&&result[e.id]?result[e.id].map(v=>`<i style="--c:${G.ents[v].color}"></i>`).join(''):'';
     const voted=!result&&G.votedSet&&G.votedSet.has(e.id)?'<em>VOTED</em>':'';
-    b.innerHTML=`<div class="ava" style="--c:${e.color}"></div><span>${esc(e.name)}${e===G.me?' (you)':''}${save.cbTags&&cName(e.color)?' · '+cName(e.color):''}${alive?'':' · frozen'}</span>${voted}<div class="vd">${dots}</div>`;
+    const rep=(e!==G.me&&facePhoto(e))?`<span class="repflag" role="button" tabindex="0" data-r="${e.id}" title="Report picture">⚑</span>`:'';
+    b.innerHTML=rep+`<div class="ava" style="--c:${e.color}"></div><span>${esc(e.name)}${e===G.me?' (you)':''}${save.cbTags&&cName(e.color)?' · '+cName(e.color):''}${alive?'':' · frozen'}</span>${voted}<div class="vd">${dots}</div>`;
     b.onclick=()=>{G.myVote=e.id;renderVotes(null);$('#voteBtn').disabled=false};
     box.appendChild(b);
   });
@@ -2187,7 +2192,7 @@ $('#lobbyStart').onclick=()=>{if(NET.mode==='host'&&NET.lobby.length){hideAll();
 $('#copyCode').onclick=()=>{const c=NET.code||'';try{navigator.clipboard.writeText(c).then(()=>toast('Code copied: '+c),()=>toast('Squad code: '+c))}catch(e){toast('Squad code: '+c)}};
 function onlineError(msg){hideAll();$('#hud').hidden=true;$('#online').hidden=false;$('#onErr').textContent=msg}
 function showLobby(msg){hideAll();$('#hud').hidden=true;$('#lobby').hidden=false;$('#lobbyStatus').textContent=msg||'';$('#lobbyCode').textContent='·····';$('#plist').innerHTML=''}
-function drawAva(cnv,p){const x=cnv.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cnv.width,cnv.height);const k=cnv.width/34;x.scale(k,k);drawBot(x,17,22,p.color,p.hat,1,'ok',performance.now()/1000,false,p.visor,p===save?myPhoto():null)}
+function drawAva(cnv,p){const x=cnv.getContext('2d');x.setTransform(1,0,0,1,0,0);x.clearRect(0,0,cnv.width,cnv.height);const k=cnv.width/34;x.scale(k,k);drawBot(x,17,22,p.color,p.hat,1,'ok',performance.now()/1000,false,p.visor,p===save?myPhoto():facePhoto(p))}
 function renderPal(box){
   if(!box)return;
   box.innerHTML='<span>Robot colors</span>'+Object.keys(CSETS).map(k=>`<button data-k="${k}" class="${save.palette===k?'on':''}"><i class="dots">${CSETS[k].c.slice(0,4).map(x=>`<b style="background:${x[1]}"></b>`).join('')}</i>${CSETS[k].n}</button>`).join('')+`<button data-cb="1" class="${save.cbTags?'on':''}">Color names: ${save.cbTags?'On':'Off'}</button>`;
@@ -2228,6 +2233,37 @@ let PHOTO_IMG=null;
 function loadPhoto(){PHOTO_IMG=null;if(save.photo){const im=new Image();im.onload=()=>{PHOTO_IMG=im;if(!$('#shop').hidden)renderPhoto()};im.src=save.photo}}
 function myPhoto(){return save.photoOn&&PHOTO_IMG?PHOTO_IMG:null}
 loadPhoto();
+const FACES={};
+function facePhoto(e){
+  if(!e||!e.fp)return null;if(e.fp===save.pid)return myPhoto();
+  let f=FACES[e.fp];const now=performance.now();
+  if(!f||(f.state==='none'&&now-f.t>60000)){f=FACES[e.fp]={state:'loading',img:null,t:now};
+    fetch(FS+'/faces/'+e.fp).then(r=>r.ok?r.json():null).then(j=>{const fl=j&&j.fields;if(!fl||fl.status?.stringValue!=='approved'||+(fl.reports?.integerValue||0)>0||!fl.img?.stringValue){f.state='none';f.t=performance.now();return}
+      const im=new Image();im.onload=()=>{f.img=im;f.state='ok'};im.onerror=()=>{f.state='none'};im.src=fl.img.stringValue}).catch(()=>{f.state='none';f.t=performance.now()})}
+  return f.state==='ok'?f.img:null;
+}
+async function reportFace(e){
+  if(!e||!e.fp)return;const f=FACES[e.fp];if(f){f.state='hidden';f.img=null}
+  try{await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{transform:{document:`projects/bolt-squad/databases/(default)/documents/faces/${e.fp}`,fieldTransforms:[{fieldPath:'reports',increment:{integerValue:'1'}}]}}]})})}catch(err){}
+  toast('Thanks for telling us. That picture is hidden until a grown-up checks it.',3);
+}
+document.addEventListener('click',ev=>{const r=ev.target.closest&&ev.target.closest('.repflag');if(!r||!G)return;ev.preventDefault();ev.stopPropagation();reportFace(G.ents[+r.dataset.r]);renderVotes(G.voteResult||null)},true);
+async function refreshPub(){
+  const box=$('#pubBox');box.hidden=!save.photo;if(!save.photo)return;const st=$('#pubStatus'),btn=$('#pubSend');
+  if(!save.facePub){st.textContent='A grown-up checks every picture before other players can see it. Free while testing, $2.99 at launch.';btn.hidden=false;btn.textContent='Send for approval';return}
+  btn.hidden=true;st.textContent='Waiting for a grown-up to check your picture...';
+  try{const r=await fetch(FS+'/faceStatus/'+save.pid);if(!r.ok)return;const fl=(await r.json()).fields||{};if(String(fl.ver?.integerValue||'')!==String(save.faceVer))return;
+    const s=fl.status?.stringValue;if(s==='approved')st.textContent='Approved! Everyone in your games can see your photo face.';
+    else if(s==='denied'){save.facePub=false;persist();st.textContent='That picture was not approved. Try a different one.';btn.hidden=false;btn.textContent='Send a new picture'}}catch(e){}
+}
+$('#pubSend').onclick=async()=>{
+  if(!save.photo)return;const ver=Date.now();$('#pubSend').disabled=true;$('#pubStatus').textContent='Sending...';
+  const fields={img:{stringValue:save.photo},name:{stringValue:cleanName(save.name).slice(0,15)},status:{stringValue:'pending'},reports:{integerValue:'0'},ver:{integerValue:String(ver)}};
+  try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/faces/${save.pid}`,fields},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
+    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;persist();sendAvatar();refreshPub()}
+  catch(e){$('#pubStatus').textContent='Could not send. Wait a minute and try again.'}
+  $('#pubSend').disabled=false;
+};
 function renderPhoto(){
   const has=!!save.photo;$('#photoToggle').hidden=!has;$('#photoRemove').hidden=!has;$('#photoPick').textContent=has?'Change picture':'Choose picture';
   $('#photoToggle').textContent='Photo face: '+(save.photoOn?'On':'Off');
@@ -2238,11 +2274,11 @@ $('#photoIn').addEventListener('change',e=>{
   if(!/^image\//.test(f.type)){toast('Pick a picture file.');return}
   const url=URL.createObjectURL(f),im=new Image();
   im.onload=()=>{const s=Math.min(im.width,im.height),cv3=document.createElement('canvas');cv3.width=cv3.height=128;const x=cv3.getContext('2d');x.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);URL.revokeObjectURL(url);
-    try{save.photo=cv3.toDataURL('image/jpeg',0.82);save.photoOn=true;persist();loadPhoto();toast('Photo face is on! Only you can see it.')}catch(err){toast('That picture did not work. Try another one.')}};
+    try{save.photo=cv3.toDataURL('image/jpeg',0.82);save.photoOn=true;save.facePub=false;persist();loadPhoto();refreshPub();sendAvatar();toast('Photo face is on! Only you can see it.')}catch(err){toast('That picture did not work. Try another one.')}};
   im.onerror=()=>{URL.revokeObjectURL(url);toast('That picture did not work. Try another one.')};im.src=url;
 });
-$('#photoToggle').onclick=()=>{save.photoOn=!save.photoOn;persist();renderPhoto()};
-$('#photoRemove').onclick=()=>{save.photo=null;save.photoOn=false;persist();loadPhoto();renderPhoto()};
+$('#photoToggle').onclick=()=>{save.photoOn=!save.photoOn;persist();renderPhoto();sendAvatar()};
+$('#photoRemove').onclick=()=>{save.photo=null;save.photoOn=false;save.facePub=false;persist();loadPhoto();renderPhoto();refreshPub();sendAvatar()};
 function renderShop(){
   $('#shopCoins').textContent=save.coins;$('#nameIn').value=save.name;
   const nx=nextReward(),pts=save.points||0;
@@ -2266,13 +2302,13 @@ function renderShop(){
     const cur=hatTint(save.hat),opts=[{id:'',n:'Normal',c:HAT_DEF[base]}].concat(HCOLS.map(x=>({id:x.id,n:x.n,c:x.id})));
     $('#hatCols').innerHTML=opts.map(o=>{const locked=false;const on=(o.id?save.hat===base+'|'+o.id:save.hat===base);return`<button class="sw${on?' on':''}${locked?' locked':''}" style="--c:${o.c}" data-o="${o.id}" aria-label="${o.n} ${base}">${locked?`<small>${HCOL_COST}c</small>`:cn(o.id||'n',o.n)}</button>`}).join('');
     $('#hatCols').querySelectorAll('.sw').forEach(b=>b.onclick=()=>{const id=b.dataset.o;if(!id){save.hat=base;persist();renderShop();return}save.hat=base+'|'+id;persist();renderShop()})}
-  renderPhoto();
+  renderPhoto();refreshPub();
   $('#cbTags').checked=!!save.cbTags;$('#cbTags').onchange=e=>{save.cbTags=e.target.checked;persist();renderShop()};
   $('#hats').querySelectorAll('.hat').forEach(b=>b.onclick=()=>{const h=HATS.find(x=>x.id===b.dataset.h);if(hatBase(save.hat)===h.id)return;tryGet(h.id,h,()=>{save.hat=h.id});renderShop()});
 }
 function sendAvatar(){
   if(NET.mode==='host'){const me=NET.lobby.find(p=>p.local);if(me){me.name=cleanName(save.name);me.color=freeColor(save.color,me);Object.assign(me,avatarFrom(save));sendLobby()}}
-  else if(NET.mode==='guest')sendHost({t:'avatar',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor});
+  else if(NET.mode==='guest')sendHost({t:'avatar',name:cleanName(save.name),color:save.color,hat:save.hat,visor:save.visor,fp:myFp()});
 }
 const pv=$('#pv'),pc=pv.getContext('2d');
 function drawPreview(t){
