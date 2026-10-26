@@ -855,7 +855,7 @@ function newGame(mode,role){
   g.glitch=true;
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
   placeAtTable(ents);
-  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():0,sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
+  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
   ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
@@ -1143,7 +1143,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:30;renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -2228,12 +2228,12 @@ function renderPal(box){
     else{save.palette=b.dataset.k;const cs=COLS();if(!cs.includes(save.color)&&!PAINTS.some(p=>p.id===save.color))save.color=cs[0]}
     persist();renderPal(box);if(NET.mode!=='off'){sendAvatar();if(!$('#lobby').hidden)renderLobby()}});
 }
-const ZAPS=[5,10,15,20,25,30,35,40,45,50,55,60];
-function zapSec(){return ZAPS.includes(save.zapSec)?save.zapSec:30}
+const ZAPS=[5,10,15,20,22,25,30,35,40,45,50,55,60];
+function zapSec(){if(!save.zapSetV2){save.zapSec=22;save.zapSetV2=true}return ZAPS.includes(save.zapSec)?save.zapSec:22}
 function renderZap(box,canEdit){
-  if(!box)return;const v=canEdit?zapSec():(NET.zap||30),i=ZAPS.indexOf(v);
+  if(!box)return;const v=canEdit?zapSec():(NET.zap||22),i=ZAPS.indexOf(v);
   box.innerHTML=`<span>Zap cooldown (kill cooldown)</span>${canEdit?`<button class="zarrow" data-d="-1" aria-label="Shorter" ${i<=0?'disabled':''}>◀</button>`:''}<b class="zval">${v} sec</b>${canEdit?`<button class="zarrow" data-d="1" aria-label="Longer" ${i>=ZAPS.length-1?'disabled':''}>▶</button>`:''}`;
-  if(canEdit)box.querySelectorAll('.zarrow').forEach(b=>b.onclick=()=>{const j=Math.max(0,Math.min(ZAPS.length-1,ZAPS.indexOf(zapSec())+(+b.dataset.d)));save.zapSec=ZAPS[j];persist();renderZap(box,true);if(NET.mode==='host')sendLobby()});
+  if(canEdit)box.querySelectorAll('.zarrow').forEach(b=>b.onclick=()=>{const j=Math.max(0,Math.min(ZAPS.length-1,ZAPS.indexOf(zapSec())+(+b.dataset.d)));save.zapSec=ZAPS[j];save.zapSetV2=true;persist();renderZap(box,true);if(NET.mode==='host')sendLobby()});
 }
 function renderDiff(box,canEdit){
   if(!box)return;
