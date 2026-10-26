@@ -437,7 +437,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
     <div class="panel" style="max-width:460px">
       <button class="x" id="lbClose" aria-label="Close">×</button>
       <h2>Leaderboard</h2>
-      <p class="note">Most coins earned by playing.</p>
+      <p class="note">Top 100 · most coins earned by playing.</p>
       <div class="lbtabs" id="lbTabs"><button data-p="day" class="on">Today</button><button data-p="week">This Week</button><button data-p="month">This Month</button><button data-p="all">All Time</button></div>
       <ol class="lblist" id="lbList"></ol>
     </div>
@@ -2163,7 +2163,7 @@ let lbPeriod='day';
 async function renderLb(){
   const box=$('#lbList');box.innerHTML='<li><span class="empty">Loading...</span></li>';
   $('#lbTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===lbPeriod));
-  try{const r=await fetch(FS+':runQuery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:lbKeys()[lbPeriod]}],orderBy:[{field:{fieldPath:'coins'},direction:'DESCENDING'}],limit:25}})});
+  try{const r=await fetch(FS+':runQuery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:lbKeys()[lbPeriod]}],orderBy:[{field:{fieldPath:'coins'},direction:'DESCENDING'}],limit:100}})});
     if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!x.document.name.endsWith('/zzsetuptest')).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
     box.innerHTML=rows.length?rows.map((p,i)=>`<li class="${p.id===save.pid?'me':''}"><span class="rk">${i+1}</span><span>${esc(p.name)}${p.id===save.pid?' (you)':''}</span><span class="cn2">${p.coins.toLocaleString()}</span></li>`).join(''):'<li><span class="empty">No coins yet. Play a game to get on the board!</span></li>';
   }catch(e){box.innerHTML='<li><span class="empty">Could not load the leaderboard. Check your internet.</span></li>'}
