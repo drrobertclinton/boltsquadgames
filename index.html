@@ -393,6 +393,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <div class="myava"><canvas id="lobbyAva" width="128" height="128" aria-label="Your robot"></canvas><div class="myava-r"><b id="lobbyMyName"></b><button class="big ghost" id="lobbyCustom">Customize robot</button></div></div>
       <div class="diff" id="diffLobby"></div>
       <div class="diff zapset" id="zapLobby"></div>
+      <div class="diff" id="glLobby"></div>
       <div class="plist" id="plist"></div>
       <div class="row2">
         <button class="big" id="lobbyStart">Start Game</button>
@@ -815,7 +816,7 @@ function hostDrop(conn){
 function sendLobby(){
   const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor,fp:p.fp||''}));
   NET.list=list;
-  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec()})}catch(e){}}});
+  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec(),gl:glCount()})}catch(e){}}});
   if(!NET.inGame)renderLobby();
 }
 function joinSquad(code){
@@ -855,19 +856,22 @@ function newGame(mode,role){
   else if(role==='crew'||mode==='tutorial')g=pick(ents.slice(1));
   else g=Math.random()<1/MAXP?ents[0]:pick(ents.slice(1));
   g.glitch=true;
+  const nGl=mode==='online'?glCount():1;
+  if(nGl===2){const pool=ents.filter(e=>!e.glitch);pick(pool).glitch=true}
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
   placeAtTable(ents);
   G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
+  ents.forEach(e=>{if(e.glitch)e.zcd=e.human?G.zapCd:20});G.nGl=ents.filter(e=>e.glitch).length;
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
-  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
+  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,mates:e.glitch?ents.filter(o=>o.glitch&&o!==e).map(o=>o.id):[],nGl:ents.filter(o=>o.glitch).length,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
   enterGameUI(G.me.glitch);
   if(mode==='tutorial')tutStart();
 }
 function guestStart(m){
   const ents=m.roster.map((r,i)=>Object.assign({},r,{x:m.pos[i][0],y:m.pos[i][1],tx:m.pos[i][0],ty:m.pos[i][1],alive:true,face:1,moving:false,bx:0,by:0,cleared:false,ejected:false,bodyFound:false,glitch:false,tasks:[],done:new Set()}));
-  const me=ents[m.myId];me.scansLeft=2;me.glitch=!!m.glitch;me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
-  G={ents,me,guest:true,diff:m.diff||'normal',t:0,state:'play',zapCd:12,sabCd:30,breach:null,meetingUsed:false,prog:[0,1],earned:0,hudT:0,tlKey:'',online:true};
+  const me=ents[m.myId];me.scansLeft=2;me.glitch=!!m.glitch;(m.mates||[]).forEach(id=>{if(ents[id])ents[id].mate=true});me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
+  G={nGl:m.nGl||1,ents,me,guest:true,diff:m.diff||'normal',t:0,state:'play',zapCd:12,sabCd:30,breach:null,meetingUsed:false,prog:[0,1],earned:0,hudT:0,tlKey:'',online:true};
   enterGameUI(me.glitch);
 }
 function enterGameUI(isGlitch){
@@ -875,7 +879,8 @@ function enterGameUI(isGlitch){
   $('#roleChip').textContent=isGlitch?'GLITCH':'CREW';$('#roleChip').classList.toggle('glitch',isGlitch);
   $('#scanBtn').className='act '+(isGlitch?'zap':'scan');$('#scanBtn').firstChild.textContent=isGlitch?'ZAP':'SCAN';
   $('#sabBtn').hidden=!isGlitch;
-  toast(isGlitch?'You are the GLITCH. Zap bots when no one is looking.':'You are CREW. Do your repairs and find the Glitch.',3.5);
+  const mates=G.ents.filter(e=>isMate(e)).map(e=>e.name);
+  toast(isGlitch?(mates.length?`You are a GLITCH with ${mates.join(' and ')}. Their name shows in red. Zap bots when no one is looking.`:'You are the GLITCH. Zap bots when no one is looking.'):(G.nGl>1?'You are CREW. There are 2 Glitches this game. Find them!':'You are CREW. Do your repairs and find the Glitch.'),4);
 }
 function taskProgress(){if(G.guest)return G.prog;let tot=0,d=0;G.ents.forEach(e=>{if(!e.glitch){tot+=e.tasks.length;d+=e.done.size}});return[d,tot]}
 
@@ -912,7 +917,7 @@ function arrive(b){
 function witnessCount(b,v){return G.ents.filter(e=>e!==b&&e!==v&&e.alive&&!e.glitch&&dist(e,b)<330).length}
 function glitchBrain(b,dt){
   if(G.tut&&!G.tut.done){b.chase=null;return}
-  if(G.zapCd>0||G.t<D().start){b.chase=null;return}
+  if((b.zcd||0)>0||G.t<D().start){b.chase=null;return}
   if(b.chase){
     const v=b.chase;const rv=roomAt(v.x,v.y),rb=roomAt(b.x,b.y);
     if(!v.alive||!rv||rv!==rb){b.chase=null;return}
@@ -945,7 +950,7 @@ function botUpdate(b,dt){
 /* ================= host rules ================= */
 function doZap(z,v){
   v.alive=false;v.frozenAt=G.t;v.bx=v.x;v.by=v.y;v.path=[];v.wait=0;v.task=null;v.bodyFound=false;v.cleared=false;v.breachDuty=false;
-  G.zapCd=G.zapSec?G.zapSec:(z.human?22:rand(D().zap[0],D().zap[1]));z.lastZapT=G.t;
+  z.zcd=G.zapSec?G.zapSec:(z.human?22:rand(D().zap[0],D().zap[1]));z.lastZapT=G.t;
   const room=placeName(v.x,v.y),info={killer:z,victim:v,room,where:{}};
   G.ents.forEach(o=>{info.where[o.id]=placeName(o.x,o.y)});
   G.ents.forEach(o=>{
@@ -998,7 +1003,7 @@ function hostAction(ent,type,d){
     case 'task':
       if(!ent.glitch&&Number.isInteger(d.id)&&ent.tasks.includes(d.id)&&!ent.done.has(d.id)){ent.done.add(d.id);deliver(ent,{t:'earn',n:5,msg:'Repair done! +5 coins'});checkWin()}break;
     case 'zap':
-      if(inPlay&&ent.glitch&&ent.alive&&ent.inVent==null&&G.zapCd<=0&&target&&target.inVent==null&&target!==ent&&target.alive&&dist(ent,target)<100)doZap(ent,target);break;
+      if(inPlay&&ent.glitch&&ent.alive&&ent.inVent==null&&(ent.zcd||0)<=0&&target&&!target.glitch&&target.inVent==null&&target!==ent&&target.alive&&dist(ent,target)<100)doZap(ent,target);break;
     case 'scan':
       if(inPlay&&!ent.glitch&&ent.alive&&(ent.scanCd||0)<=0&&(ent.scansLeft??2)>0&&target&&target!==ent&&target.alive&&dist(ent,target)<170){
         ent.scanCd=18;if(!(NET.mode==='guest'&&ent===G.me))ent.scansLeft=(ent.scansLeft??2)-1;const ago=Math.round(G.t-(target.lastZapT??-999)),hot=target.glitch&&ago<45;
@@ -1071,10 +1076,12 @@ function ventTap(e){
 }
 cv.addEventListener('pointerdown',e=>{if(ventTap(e))e.stopImmediatePropagation()},true);
 function doReport(){if(!G.me.alive||G.me.inVent!=null)return;const v=nearBody(G.me,110);if(v)act('report',{v:v.id})}
-function nearestOther(r){const me=G.me;const v=G.ents.filter(e=>e.alive&&e!==me&&e.inVent==null).sort((a,b)=>dist(a,me)-dist(b,me))[0];return v&&dist(v,me)<r?v:null}
+function myZ(){return G.guest?(G.zapCd||0):(G.me.zcd||0)}
+function isMate(e){return G.me.glitch&&e!==G.me&&(e.mate||(!G.guest&&e.glitch))}
+function nearestOther(r){const me=G.me;const v=G.ents.filter(e=>e.alive&&e!==me&&e.inVent==null&&!(me.glitch&&isMate(e))).sort((a,b)=>dist(a,me)-dist(b,me))[0];return v&&dist(v,me)<r?v:null}
 function doScanZap(){
   const me=G.me;if(!me.alive)return;
-  if(me.glitch){if(G.zapCd>0||me.inVent!=null)return;const v=nearestOther(75);if(v)act('zap',{v:v.id})}
+  if(me.glitch){if(myZ()>0||me.inVent!=null)return;const v=nearestOther(75);if(v)act('zap',{v:v.id})}
   else{
     if((me.scanCd||0)>0)return;
     if((me.scansLeft??2)<=0){toast('No scans left this game. You only get 2.');return}
@@ -1103,7 +1110,7 @@ function update(dt){
   if(G.guest){guestUpdate(dt);return}
   if(G.state==='meeting'||G.state==='end'||G.state==='eject')return;
   G.t+=dt;
-  G.zapCd=Math.max(0,G.zapCd-dt);G.sabCd=Math.max(0,G.sabCd-dt);
+  G.ents.forEach(e=>{if(e.glitch)e.zcd=Math.max(0,(e.zcd||0)-dt)});G.sabCd=Math.max(0,G.sabCd-dt);
   G.ents.forEach(e=>{if(e.human)e.scanCd=Math.max(0,(e.scanCd||0)-dt);e.ventCd=Math.max(0,(e.ventCd||0)-dt);
     if(e.human&&e.inVent!=null){e.ventTime=(e.ventTime||0)+dt;if(e.ventTime>=15){const v=VENTS[e.inVent];e.inVent=null;e.x=v.x;e.y=v.y+20;e.ventCd=30;ventSeen(e,v);if(e.local)toast('Time is up! You got pushed out of the vent.',2.5);else deliver(e,{t:'ventkick'})}}});
   movePlayer(dt);
@@ -1124,13 +1131,13 @@ function update(dt){
     G.breach.fix+=dt*n;
     if(G.breach.fix>=4)endBreach(true);
     else if(G.breach.t<=0){G.breach=null;endGame('glitch','The hull breach flooded Trench Base!');return}
-  }else if(!G.lights&&!G.glitch.human&&G.glitch.alive&&!(G.tut&&!G.tut.done)){G.aiSabCd-=dt;if(G.aiSabCd<=0){G.aiSabCd=rand(55,85);if(Math.random()<0.65){if(Math.random()<0.5)startLights();else startBreach()}}}
+  }else if(!G.lights&&!G.ents.some(e=>e.glitch&&e.human)&&G.ents.some(e=>e.glitch&&e.alive)&&!(G.tut&&!G.tut.done)){G.aiSabCd-=dt;if(G.aiSabCd<=0){G.aiSabCd=rand(55,85);if(Math.random()<0.65){if(Math.random()<0.5)startLights();else startBreach()}}}
   if(G.online){NET.lastSnap-=dt;if(NET.lastSnap<=0){NET.lastSnap=1/12;sendSnaps()}}
 }
 function sendSnaps(){
   const e=G.ents.map(x=>[x.id,Math.round(x.x),Math.round(x.y),x.face,x.moving?1:0,x.alive?1:0,Math.round(x.bx||0),Math.round(x.by||0),(x.cleared?1:0)|(x.ejected?2:0)|(x.bodyFound?4:0)|(x.inVent!=null?8:0)]);
   const meta={l:G.lights?1:0,b:G.breach?Math.ceil(G.breach.t):0,mu:G.meetingUsed?1:0,p:taskProgress()};
-  G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(G.zapCd):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
+  G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(x.zcd||0):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
 }
 function guestUpdate(dt){
   const me=G.me;me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
@@ -1145,7 +1152,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -1707,7 +1714,7 @@ function drawWorld(t){
   G.ents.forEach(e=>{
     if(!e.alive&&!e.ejected&&!e.cleared&&canSee({x:e.bx,y:e.by}))draws.push({y:e.by,f:()=>drawBot(ctx,e.bx,e.by,e.color,e.hat,1,'frozen',t,false,e.visor)});
     if(e===me)return;
-    if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));label(tagName(e),e.x,e.y-34,e.human?'#9ef0ff':'#e8f4f8')}});
+    if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));label(tagName(e),e.x,e.y-34,isMate(e)?'#ff4d6d':e.human?'#9ef0ff':'#e8f4f8')}});
     else if(!e.alive&&!me.alive)draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ghost',t,e.moving,e.visor,facePhoto(e));if(e.human)label(tagName(e),e.x,e.y-34,'#9ef0ff')}});
   });
   draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent · '+Math.max(0,Math.ceil(15-(me.ventTime||0)))+'s',me.x,me.y-34,'#ff4d6d');return}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());label(tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
@@ -1801,12 +1808,12 @@ function hud(){
   const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':u==='vent'?'VENT':u==='exit'?'EXIT':(me.glitch&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
   $('#repBtn').disabled=!(me.alive&&me.inVent==null&&nearBody(me,110));
   const sb=$('#scanBtn');
-  if(me.glitch){sb.disabled=!me.alive||me.inVent!=null||G.zapCd>0||!nearestOther(75);$('#scanCd').textContent=G.zapCd>0?Math.ceil(G.zapCd):''}
+  if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
   else{const left=me.scansLeft??2;sb.disabled=!me.alive||(me.scanCd||0)>0||left<=0;$('#scanCd').textContent=(me.scanCd||0)>0?Math.ceil(me.scanCd):(left+' left')}
   $('#sabBtn').disabled=G.sabCd>0||!!G.breach||!!G.lights;if($('#sabBtn').disabled||G.state!=='play')$('#sabUI').hidden=true;$('#sabCd').textContent=G.sabCd>0?Math.ceil(G.sabCd):'';
   const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else if(G.lights){bn.hidden=false;bn.textContent='LIGHTS OUT · PANEL IN CENTRAL HUB'}else bn.hidden=true;
   let html;
-  if(me.glitch){const crew=G.ents.filter(e=>e.alive&&e!==me).length;html=`<b>YOUR MISSION</b>Freeze bots until only 1 crew bot is left.<br><span class="r">Awake crew: ${crew}</span>`}
+  if(me.glitch){const crew=G.ents.filter(e=>e.alive&&e!==me&&!isMate(e)).length;html=`<b>YOUR MISSION</b>Freeze bots until only 1 crew bot is left.<br><span class="r">Awake crew: ${crew}</span>`}
   else html='<b>'+(me.alive?'YOUR REPAIRS':'GHOST REPAIRS')+'</b>'+me.tasks.map(id=>{const s=STATIONS[id];return`<div class="${me.done.has(id)?'d':''}">${s.label} <span class="r">· ${roomName(s.room)}</span></div>`}).join('');
   if(G.online&&NET.code)html+=`<span class="r">Squad ${esc(NET.code)}</span>`;
   if(html!==G.tlKey){G.tlKey=html;$('#tasklist').innerHTML=html}
@@ -2037,7 +2044,7 @@ function doEject(ej,votes){
     if(ej){ej.alive=false;ej.ejected=true;ej.bx=ej.x;ej.by=ej.y;if(ej.glitch)(votes[ej.id]||[]).forEach(v=>{if(v.human&&!v.glitch)deliver(v,{t:'earn',n:20,msg:'You voted out the Glitch! +20 coins'})})}
     G.ents.forEach(e=>{if(!e.alive)e.cleared=true;e.saw=null;e.nearSaw=null});
     placeAtTable(G.ents.filter(e=>e.alive));
-    G.zapCd=Math.max(G.zapCd,15);G.ents.forEach(e=>e.scanCd=0);G.state='play';G.resolving=false;
+    G.ents.forEach(e=>{e.scanCd=0;if(e.glitch)e.zcd=Math.max(e.zcd||0,15)});G.state='play';G.resolving=false;
     broadcast({t:'resume',pos:G.ents.map(e=>[Math.round(e.x),Math.round(e.y)])});
     checkWin();
   },4300);
@@ -2111,14 +2118,14 @@ function showEject(m){
 function checkWin(){
   if(!G||G.guest||G.state==='end')return;
   const[d,tot]=taskProgress();
-  if(G.glitch.ejected)return endGame('crew','The Glitch got launched out the airlock!');
+  if(G.ents.filter(e=>e.glitch).every(e=>e.ejected))return endGame('crew',G.nGl>1?'Both Glitches got launched out the airlock!':'The Glitch got launched out the airlock!');
   if(d>=tot)return endGame('crew','Every repair is done. Trench Base is safe.');
   if(G.ents.filter(e=>e.alive&&!e.glitch).length<=1)return endGame('glitch','Only one crew bot is left awake.');
 }
 function endGame(side,why){
   if(G.state==='end')return;
   G.state='end';clearTimeout(meetTimeout);NET.inGame=false;
-  G.ents.forEach(e=>{if(!e.human)return;const won=(side==='glitch')===e.glitch;deliver(e,{t:'end',side,why,glitch:G.glitch.name,won,bonus:e.glitch?(won?50:10):(won?25:5)})});
+  G.ents.forEach(e=>{if(!e.human)return;const won=(side==='glitch')===e.glitch;deliver(e,{t:'end',side,why,glitch:G.ents.filter(o=>o.glitch).map(o=>o===e?'you':o.name).join(' and '),won,bonus:e.glitch?(won?50:10):(won?25:5)})});
 }
 function showEnd(m){
   if(G.tut&&!G.tut.done)tutFinish(true);
@@ -2131,7 +2138,7 @@ function showEnd(m){
   $('#endPts').textContent='+'+pts.toLocaleString()+' ('+save.points.toLocaleString()+' total)';
   const u=$('#endUnlock');u.hidden=!newly.length;if(newly.length)u.textContent='Unlocked: '+newly.map(r=>r.n).join(', ')+'! Equip it in Skins & Shop.';
   $('#endBig').textContent=m.won?'VICTORY':'DEFEAT';$('#endBig').className='endbig '+(m.won?'win':'lose');
-  $('#endWhy').textContent=`${m.side==='crew'?'Crew wins.':'The Glitch wins.'} ${m.why} The Glitch was ${m.glitch===G.me.name&&G.me.glitch?'you':m.glitch}.`;
+  $('#endWhy').textContent=`${m.side==='crew'?'Crew wins.':'The Glitch wins.'} ${m.why} ${String(m.glitch).includes(' and ')?'The Glitches were '+m.glitch:'The Glitch was '+m.glitch}.`;
   $('#endCoins').textContent='+'+total+' (repairs '+G.earned+', '+(m.won?'win':'game')+' bonus '+m.bonus+')';
   const online=NET.mode!=='off';
   $('#againBtn').textContent=online?'Back to squad':'Play again';
@@ -2197,14 +2204,14 @@ function lbKeys(){
   return{day:'lb_day_'+p,week:'lb_week_'+wy+'-W'+String(wk).padStart(2,'0'),month:'lb_month_'+p.slice(0,7),all:'lb_all'};
 }
 async function lbAdd(n){
-  if(!(n>0))return;n=Math.min(150,Math.round(n));const k=lbKeys(),name=cleanName(save.name).slice(0,15);
+  if(!(n>0)||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;n=Math.min(150,Math.round(n));const k=lbKeys(),name=cleanName(save.name).slice(0,15);
   const writes=Object.values(k).map(coll=>({update:{name:`projects/bolt-squad/databases/(default)/documents/${coll}/${save.pid}`,fields:{name:{stringValue:name}}},updateMask:{fieldPaths:['name']},updateTransforms:[{fieldPath:'coins',increment:{integerValue:String(n)}},{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}));
   try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes})});if(!r.ok)throw 0}catch(e){save.lbPending=(save.lbPending||0)+n;persist();return}
   if(save.lbPending){const p=save.lbPending;save.lbPending=0;persist();setTimeout(()=>lbAdd(p),35000)}
 }
 let lbPeriod='day';
 // my setup test games ran before 17:45 UTC on Oct 26; only Rock was a real player then
-function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T17:45:00Z'&&id!=='b4iuy2vbtghy'}
+function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T19:05:00Z'&&id!=='b4iuy2vbtghy'}
 // test games from setup day, not real players
 const LB_HIDE=new Set(['zzsetuptest','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
 async function renderLb(){
@@ -2236,6 +2243,13 @@ function renderPal(box){
 }
 const ZAPS=[5,10,15,20,22,25,30,35,40,45,50,55,60];
 function zapSec(){if(!save.zapSetV2){save.zapSec=22;save.zapSetV2=true}return ZAPS.includes(save.zapSec)?save.zapSec:22}
+function glCount(){return save.glitches===2?2:1}
+function renderGl(box,canEdit){
+  if(!box)return;const v=canEdit?glCount():(NET.gl||1);
+  if(!canEdit){box.innerHTML=`<span>Glitches</span><b>${v}</b>`;return}
+  box.innerHTML='<span>Glitches</span>'+[1,2].map(n=>`<button data-g="${n}" class="${v===n?'on':''}">${n} Glitch${n>1?'es':''}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.glitches=+b.dataset.g;persist();renderGl(box,true);if(NET.mode==='host')sendLobby()});
+}
 function renderZap(box,canEdit){
   if(!box)return;const v=canEdit?zapSec():(NET.zap||22),i=ZAPS.indexOf(v);
   box.innerHTML=`<span>Zap cooldown (kill cooldown)</span>${canEdit?`<button class="zarrow" data-d="-1" aria-label="Shorter" ${i<=0?'disabled':''}>◀</button>`:''}<b class="zval">${v} sec</b>${canEdit?`<button class="zarrow" data-d="1" aria-label="Longer" ${i>=ZAPS.length-1?'disabled':''}>▶</button>`:''}`;
@@ -2254,7 +2268,7 @@ function renderLobby(){
   $('#plist').innerHTML=list.map((p,i)=>`<div class="prow"><canvas width="68" height="68" data-i="${i}"></canvas>${esc(p.name)}<span class="tag">${i===0?'Squad leader':'Ready'}</span></div>`).join('')+(list.length<MAXP?`<div class="prow empty">${MAXP-list.length} open spot${MAXP-list.length>1?'s':''} · robots fill in</div>`:'');
   $('#plist').querySelectorAll('canvas').forEach(c=>drawAva(c,list[+c.dataset.i]));
   drawAva($('#lobbyAva'),save);$('#lobbyMyName').textContent=cleanName(save.name);
-  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderPal($('#palLobby'));
+  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderGl($('#glLobby'),host);renderPal($('#palLobby'));
   $('#lobbyStart').hidden=!host;
   $('#lobbyStatus').textContent=host?'Tell your friends to open boltsquadgames.com, tap Play with Friends, then Join and type this code.':'You\'re in! Customize your robot while you wait for the squad leader to start.';
 }
@@ -2373,7 +2387,7 @@ const TUT=[
 ];
 function tutStart(){
   const me=G.me;if(!me.tasks.includes(15))me.tasks[0]=15;
-  G.tut={step:-1,done:false,moved:0,lx:me.x,ly:me.y,scans:0};G.zapCd=999;
+  G.tut={step:-1,done:false,moved:0,lx:me.x,ly:me.y,scans:0};G.ents.forEach(e=>{if(e.glitch)e.zcd=999});
   tutGo(0);
 }
 function tutGo(n){
@@ -2425,7 +2439,7 @@ function tutFinish(silent){
   T.done=true;save.tutorialDone=true;persist();
   document.querySelectorAll('.hl').forEach(e=>e.classList.remove('hl'));
   $('#coach').hidden=true;$('#meetTip').hidden=true;document.body.classList.remove('tutoring');
-  G.zapCd=25;G.aiSabCd=rand(60,90);
+  G.ents.forEach(e=>{if(e.glitch)e.zcd=25});G.aiSabCd=rand(60,90);
   if(!silent)toast('Tutorial done! Good luck, crew.');
 }
 $('#coachNext').onclick=()=>{const T=G&&G.tut;if(!T)return;if(T.step===0)tutGo(1);else if(T.step===4)tutGo(5);else if(T.step===8)tutFinish(false)};
