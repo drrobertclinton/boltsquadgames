@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Bolt Squad</title>
 <meta name="description" content="Fix the base. Find the Glitch. A deep-sea robot mystery for you and your squad. Play free in your browser.">
 <meta property="og:type" content="website">
@@ -96,6 +96,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .zapset .zarrow{width:40px;padding:6px 0!important;font-size:15px}.zapset .zarrow:disabled{opacity:.35}.zapset .zval{min-width:64px;text-align:center;font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}
 .qb.saw{border-color:#ff4d6d!important}
 .meetmap{font:700 13px 'Chakra Petch',sans-serif;background:#123653;color:#e8f4f8;border:2px solid #3ad1b8;border-radius:10px;padding:6px 10px;margin-right:8px}
+.pprev{display:grid;gap:4px;justify-items:center;flex:none}.pendtag{display:inline-block;background:#ffd166;color:#2a1f00;font:700 11px 'Chakra Petch',sans-serif;border-radius:999px;padding:2px 8px;margin-right:4px}.apptag{display:inline-block;background:#3ad1b8;color:#032a24;font:700 11px 'Chakra Petch',sans-serif;border-radius:999px;padding:2px 8px;margin-right:4px}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -153,6 +154,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .cambox .maphead b{color:#ff4d6d}
 #camCv{display:block;width:100%;height:auto;max-height:calc(100dvh - 110px);object-fit:contain;border-radius:10px;background:#000;min-height:0}
 .camnote{margin:0;font-size:12px;color:#8fb6c7}
+html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
+.maphead button{min-width:44px;min-height:44px;font-size:20px!important}
+.mapbox::after{content:'Tap anywhere to close';display:block;text-align:center;font-size:12px;color:#8fb6c7}
 .mapbtn{width:auto!important;padding:0 10px!important;font:400 12px Bungee,sans-serif!important;letter-spacing:.04em}
 .mapui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,22,.6);z-index:90;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
 .mapbox{background:#0a2236;border:2px solid #3ad1b8;border-radius:16px;padding:10px;width:min(100%,760px);max-height:100%;display:flex;flex-direction:column;gap:6px;overflow:hidden}
@@ -440,7 +444,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <div id="hatColBox"><h3 id="hatColTitle">HAT COLOR</h3><div class="swatches" id="hatCols"></div></div>
       <h3>PHOTO FACE</h3>
       <p class="note">Put any picture on your robot's face, like your pet. Only you can see it. Other players see your normal robot.</p>
-      <div class="photorow"><canvas id="photoPrev" width="160" height="160" aria-label="Your robot with the photo face"></canvas>
+      <div class="photorow"><div class="pprev"><canvas id="photoPrev" width="160" height="160" aria-label="Your robot with the photo face"></canvas><span class="pendtag" id="photoPend" hidden>Pending approval</span></div>
         <div class="photobtns"><label class="big ghost" for="photoIn" id="photoPick">Choose picture</label><input type="file" id="photoIn" accept="image/*" hidden>
         <button class="big ghost" id="photoToggle" hidden>Photo face: On</button><button class="big ghost" id="photoRemove" hidden>Remove picture</button></div></div>
       <p class="note" style="font-size:12px">Free while we're testing. It will cost $0.99 when the game launches.</p>
@@ -461,6 +465,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <h2>Leaderboard</h2>
       <p class="note">Top 100 · most coins earned by playing.</p>
       <div class="lbtabs" id="lbTabs"><button data-p="day" class="on">Today</button><button data-p="week">This Week</button><button data-p="month">This Month</button><button data-p="all">All Time</button></div>
+      <p class="note" id="lbMe" style="margin:0 0 8px"></p>
       <ol class="lblist" id="lbList"></ol>
     </div>
   </div>
@@ -623,8 +628,8 @@ const BAD=['fuck','shit','bitch','dick','cock','pussy','ass','sex','porn','nigg'
 function cleanName(n){n=String(n||'').replace(/[^\w .\-]/g,'').trim().slice(0,15);if(!n)n='Robot';const l=n.toLowerCase().replace(/[^a-z]/g,'');if(BAD.some(b=>l.includes(b)))n='Robot'+Math.floor(rand(10,99));return n}
 
 /* quick chat phrases: {X} = picked robot */
-const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.'];
-const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,15,14,6];
+const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.','I saw {X} vent!'];
+const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,17,15,14,6];
 const quickText=(p,x,r,y)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{Y}',y||'someone').replace('{R}',r||'a hallway'):null;
 
 /* ================= map ================= */
@@ -1208,7 +1213,7 @@ const THEME={
  vault:{floor:'#1c1830',line:'rgba(255,209,102,.10)',wall:'#9a7b2f',plate:'#ffd166'},
  sec:{floor:'#121a26',line:'rgba(255,77,109,.08)',wall:'#56708a',plate:'#ff4d6d'},
 };
-let decorCv=null;const DSC=1.25;
+let decorCv=null;const DSC=(navigator.deviceMemory&&navigator.deviceMemory<=4)?1:1.25;
 function buildDecor(){
   const c=document.createElement('canvas');c.width=1800*DSC;c.height=1400*DSC;const d=c.getContext('2d');d.scale(DSC,DSC);
   const R=id=>ROOMS.find(r=>r.id===id);
@@ -1794,7 +1799,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting';if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=openMap;
 if(save.miniOff){delete save.miniOff;persist()}
-$('#mapBtn').onclick=()=>$('#mapUI').hidden?openMap():closeMap();$('#mapClose').onclick=closeMap;$('#mapUI').addEventListener('click',e=>{if(e.target.id==='mapUI')closeMap()});
+$('#mapBtn').onclick=()=>$('#mapUI').hidden?openMap():closeMap();$('#mapClose').onclick=e=>{e.stopPropagation();closeMap()};$('#mapUI').addEventListener('click',e=>{e.stopPropagation();closeMap()});
 const FX={shards:[],rings:[],last:0};
 function freezeBurst(x,y){for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,v=rand(70,190);FX.shards.push({x,y:y-8,vx:Math.cos(a)*v,vy:Math.sin(a)*v-80,life:rand(0.7,1.2),r:rand(2.5,6),rot:Math.random()*6,vr:rand(-8,8)})}FX.rings.push({x,y,life:0.7})}
 function drawFx(c,t){
@@ -1978,9 +1983,9 @@ function botReact(spk,p,target,room,victim){
   const cred=S().cred,bots=aliveBots().filter(b=>b!==spk),tn=target?target.name:null;
   const other=(not)=>pick(bots.filter(b=>!not.includes(b)));
   let d=rand(1100,2000);
-  const accuse=p===0||p===2||p===3||p===14||p===15,defend=p===1||p===4||p===6;
+  const accuse=p===0||p===2||p===3||p===14||p===15||p===17,defend=p===1||p===4||p===6;
   if(accuse&&target){
-    const w=p===0?28:p===3||p===14||p===15?34:16;
+    const w=p===0?28:p===3||p===14||p===15||p===17?34:16;
     if(p===15&&victim&&victim.alive){const r0=other([target,victim]);if(r0)botSay(r0,pick([`Wait, ${victim.name} is still awake!`,`${victim.name} isn't frozen though...`]),rand(900,1500));bots.forEach(b=>{if(!b.glitch)b.sus[spk.id]=(b.sus[spk.id]||0)+25*b.trust});if(!victim.human)botSay(victim,`I'm right here! Nobody zapped me.`,rand(1800,2600));return}
     bots.forEach(b=>{if(b!==target&&!b.glitch&&Math.random()<b.trust)b.sus[target.id]=(b.sus[target.id]||0)+w*0.6*cred*b.trust});
     if(!target.human&&target.alive){
@@ -2152,7 +2157,7 @@ function renderQuick(){
     $('#qVictim').innerHTML=vict.map(e=>`<button class="qchip${e.id===G.qVict?' on':''}" data-id="${e.id}"><i style="--c:${e.color}"></i>${esc(e.name)}${e.alive?'':' ❄'}</button>`).join('');
     $('#qVictim').querySelectorAll('.qchip').forEach(b=>b.onclick=()=>{G.qVict=+b.dataset.id;draw()});
     const nm=G.qPick!=null?G.ents[G.qPick].name:'___',rn=ROOMS[G.qRoom].name,vn=G.qVict!=null&&G.ents[G.qVict]?G.ents[G.qVict].name:'___';
-    $('#qBtns').innerHTML=QORDER.map(i=>[QUICK[i],i]).map(([p,i])=>`<button class="qb${i===12||i===13?' body':''}${i===15?' saw':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn).replace('{Y}',vn))}</button>`).join('');
+    $('#qBtns').innerHTML=QORDER.map(i=>[QUICK[i],i]).map(([p,i])=>`<button class="qb${i===12||i===13?' body':''}${i===15||i===17?' saw':''}" data-p="${i}">${esc(p.replaceAll('{X}',nm).replace('{R}',rn).replace('{Y}',vn))}</button>`).join('');
     $('#qBtns').querySelectorAll('.qb').forEach(b=>b.onclick=()=>{act('chat',{p:+b.dataset.p,v:G.qPick,r:G.qRoom,y:G.qVict});b.disabled=true;setTimeout(()=>b.disabled=false,1600)});
   };
   draw();
@@ -2244,7 +2249,7 @@ $('#ideaSend').onclick=async()=>{
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const body={writes:[{update:{name:'projects/bolt-squad/databases/(default)/documents/ideas/'+id,fields:{text:{stringValue:text.slice(0,600)},from:{stringValue:cleanName(save.name).slice(0,15)},v:{stringValue:'beta-1'}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}],currentDocument:{exists:false}}]};
   try{const res=await fetch('https://firestore.googleapis.com/v1/projects/bolt-squad/databases/(default)/documents:commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
+    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();notify('Bolt Squad: new idea',`New idea from ${cleanName(save.name)}:\n\n${text}\n\nAll ideas: https://boltsquadgames.com/review.html`);$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
   catch(e){$('#ideaStatus').textContent='Could not send. Check your internet and try again.'}
   $('#ideaSend').disabled=false;
 };
@@ -2259,27 +2264,39 @@ function lbKeys(){
   const wy=dt.getUTCFullYear(),jan4=new Date(Date.UTC(wy,0,4)),wk=1+Math.round(((dt-jan4)/864e5-3+((jan4.getUTCDay()+6)%7))/7);
   return{day:'lb_day_'+p,week:'lb_week_'+wy+'-W'+String(wk).padStart(2,'0'),month:'lb_month_'+p.slice(0,7),all:'lb_all'};
 }
-async function lbAdd(n){
-  if(!(n>0)||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;n=Math.min(150,Math.round(n));const k=lbKeys(),name=cleanName(save.name).slice(0,15);
+// coins wait in a small queue on the phone until the leaderboard accepts them (one send every 31s max)
+let lbBusy=false,lbTimer=null;
+function lbAdd(n){if(!(n>0))return;save.lbQueue=(save.lbQueue||0)+(save.lbPending||0)+Math.round(n);save.lbPending=0;persist();lbFlush()}
+async function lbFlush(){
+  if(lbBusy||!(save.lbQueue>0)||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
+  const wait=31000-(Date.now()-(save.lbLast||0));if(wait>0){clearTimeout(lbTimer);lbTimer=setTimeout(lbFlush,wait+200);return}
+  lbBusy=true;const n=Math.min(150,save.lbQueue),k=lbKeys(),name=cleanName(save.name).slice(0,15)||'Robot';
   const writes=Object.values(k).map(coll=>({update:{name:`projects/bolt-squad/databases/(default)/documents/${coll}/${save.pid}`,fields:{name:{stringValue:name}}},updateMask:{fieldPaths:['name']},updateTransforms:[{fieldPath:'coins',increment:{integerValue:String(n)}},{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}));
-  try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes})});if(!r.ok)throw 0}catch(e){save.lbPending=(save.lbPending||0)+n;persist();return}
-  if(save.lbPending){const p=save.lbPending;save.lbPending=0;persist();setTimeout(()=>lbAdd(p),35000)}
+  let ok=false;try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes})});ok=r.ok}catch(e){}
+  lbBusy=false;save.lbLast=Date.now();
+  if(ok){save.lbQueue=Math.max(0,save.lbQueue-n);save.lbSent=(save.lbSent||0)+n}
+  persist();if(!$('#lb').hidden)renderLb();
+  if(save.lbQueue>0){clearTimeout(lbTimer);lbTimer=setTimeout(lbFlush,31500)}
 }
+if(save.lbPending){save.lbQueue=(save.lbQueue||0)+save.lbPending;save.lbPending=0;persist()}
+setTimeout(lbFlush,1500);
 let lbPeriod='day';
 // my setup test games ran before 17:45 UTC on Oct 26; only Rock was a real player then
 function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T19:05:00Z'&&id!=='b4iuy2vbtghy'}
 // test games from setup day, not real players
-const LB_HIDE=new Set(['zzsetuptest','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
-async function renderLb(){
-  const box=$('#lbList');box.innerHTML='<li><span class="empty">Loading...</span></li>';
+const LB_HIDE=new Set(['zzsetuptest','zzlbprobe01','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
+async function renderLb(quiet){
+  const box=$('#lbList');if(!quiet)box.innerHTML='<li><span class="empty">Loading...</span></li>';
   $('#lbTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===lbPeriod));
   try{const r=await fetch(FS+':runQuery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:lbKeys()[lbPeriod]}],orderBy:[{field:{fieldPath:'coins'},direction:'DESCENDING'}],limit:100}})});
     if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!lbHidden(x.document)).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
+    const mine=rows.find(p=>p.id===save.pid),q=save.lbQueue||0;$('#lbMe').innerHTML=q>0?`<span class="pendtag">Adding ${q} coins</span> Your last game is on its way to the board.`:mine?`You're <b>#${rows.indexOf(mine)+1}</b> with ${mine.coins.toLocaleString()} coins.`:(lbPeriod==='day'?'Finish a game to get on today\'s board.':'Finish a game to get on this board.');
     box.innerHTML=rows.length?rows.map((p,i)=>`<li class="${p.id===save.pid?'me':''}"><span class="rk">${i+1}</span><span>${esc(p.name)}${p.id===save.pid?' (you)':''}</span><span class="cn2">${p.coins.toLocaleString()}</span></li>`).join(''):'<li><span class="empty">No coins yet. Play a game to get on the board!</span></li>';
   }catch(e){box.innerHTML='<li><span class="empty">Could not load the leaderboard. Check your internet.</span></li>'}
 }
 $('#lbTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{lbPeriod=b.dataset.p;renderLb()});
-$('#openLb').onclick=()=>{$('#lb').hidden=false;renderLb()};$('#lbClose').onclick=()=>{$('#lb').hidden=true};
+let lbAuto=null;
+$('#openLb').onclick=()=>{$('#lb').hidden=false;renderLb();clearInterval(lbAuto);lbAuto=setInterval(()=>{if($('#lb').hidden){clearInterval(lbAuto);return}renderLb(true)},8000)};$('#lbClose').onclick=()=>{$('#lb').hidden=true};
 $('#openHow').onclick=()=>{$('#how').hidden=false};
 $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
@@ -2343,6 +2360,11 @@ let PHOTO_IMG=null;
 function loadPhoto(){PHOTO_IMG=null;if(save.photo){const im=new Image();im.onload=()=>{PHOTO_IMG=im;if(!$('#shop').hidden)renderPhoto()};im.src=save.photo}}
 function myPhoto(){return save.photoOn&&PHOTO_IMG?PHOTO_IMG:null}
 loadPhoto();
+const NOTIFY_TO='support@boltsquadgames.com';
+function notify(subject,text){
+  if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
+  try{fetch('https://formsubmit.co/ajax/'+NOTIFY_TO,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({_subject:subject,message:text,_template:'box',_captcha:'false'})}).catch(()=>{})}catch(e){}
+}
 const FACES={};
 function facePhoto(e){
   if(!e||!e.fp)return null;if(e.fp===save.pid)return myPhoto();
@@ -2355,22 +2377,23 @@ function facePhoto(e){
 async function reportFace(e){
   if(!e||!e.fp)return;const f=FACES[e.fp];if(f){f.state='hidden';f.img=null}
   try{await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{transform:{document:`projects/bolt-squad/databases/(default)/documents/faces/${e.fp}`,fieldTransforms:[{fieldPath:'reports',increment:{integerValue:'1'}}]}}]})})}catch(err){}
-  toast('Thanks for telling us. That picture is hidden until a grown-up checks it.',3);
+  toast('Thanks for telling us. That picture is hidden until a grown-up checks it.',3);notify('Bolt Squad: a picture was reported',`Someone reported ${e.name}'s photo face. It is hidden until you check it.\n\nReview it here: https://boltsquadgames.com/review.html`);
 }
 document.addEventListener('click',ev=>{const r=ev.target.closest&&ev.target.closest('.repflag');if(!r||!G)return;ev.preventDefault();ev.stopPropagation();reportFace(G.ents[+r.dataset.r]);renderVotes(G.voteResult||null)},true);
 async function refreshPub(){
   const box=$('#pubBox');box.hidden=!save.photo;if(!save.photo)return;const st=$('#pubStatus'),btn=$('#pubSend');
+  $('#photoPend').hidden=true;
   if(!save.facePub){st.textContent='A grown-up checks every picture before other players can see it. Free while testing, $2.99 at launch.';btn.hidden=false;btn.textContent='Send for approval';return}
-  btn.hidden=true;st.textContent='Waiting for a grown-up to check your picture...';
+  btn.hidden=true;st.innerHTML='<span class="pendtag">Pending approval</span> A grown-up will check your picture soon. Only you can see it until then.';$('#photoPend').hidden=false;
   try{const r=await fetch(FS+'/faceStatus/'+save.pid);if(!r.ok)return;const fl=(await r.json()).fields||{};if(String(fl.ver?.integerValue||'')!==String(save.faceVer))return;
-    const s=fl.status?.stringValue;if(s==='approved')st.textContent='Approved! Everyone in your games can see your photo face.';
-    else if(s==='denied'){save.facePub=false;persist();st.textContent='That picture was not approved. Try a different one.';btn.hidden=false;btn.textContent='Send a new picture'}}catch(e){}
+    const s=fl.status?.stringValue;if(s==='approved'){$('#photoPend').hidden=true;st.innerHTML='<span class="apptag">Approved</span> Everyone in your games can see your photo face.'}
+    else if(s==='denied'){$('#photoPend').hidden=true;save.facePub=false;persist();st.textContent='That picture was not approved. Try a different one.';btn.hidden=false;btn.textContent='Send a new picture'}}catch(e){}
 }
 $('#pubSend').onclick=async()=>{
   if(!save.photo)return;const ver=Date.now();$('#pubSend').disabled=true;$('#pubStatus').textContent='Sending...';
   const fields={img:{stringValue:save.photo},name:{stringValue:cleanName(save.name).slice(0,15)},status:{stringValue:'pending'},reports:{integerValue:'0'},ver:{integerValue:String(ver)}};
   try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/faces/${save.pid}`,fields},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
-    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;persist();sendAvatar();refreshPub()}
+    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;persist();sendAvatar();refreshPub();notify('Bolt Squad: new picture to approve',`${cleanName(save.name)} sent a photo face for approval.\n\nReview it here: https://boltsquadgames.com/review.html`)}
   catch(e){$('#pubStatus').textContent='Could not send. Wait a minute and try again.'}
   $('#pubSend').disabled=false;
 };
