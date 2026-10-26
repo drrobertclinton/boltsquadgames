@@ -624,7 +624,7 @@ function cleanName(n){n=String(n||'').replace(/[^\w .\-]/g,'').trim().slice(0,15
 
 /* quick chat phrases: {X} = picked robot */
 const QUICK=['{X} is the Glitch!','{X} is crew.','I think it\'s {X}.','I saw {X} near the body!','{X} was with me.','Let\'s scan {X}.','I scanned {X}. Clean!','Where was everybody?','I was doing repairs.','It\'s not me!','Skip this vote.','Good game!','I found the body in {R}.','I was in {R}.','I scanned {X}. HOT! {X} is the Glitch!','I saw {X} zap {Y}!','I was on security cameras.'];
-const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,14,6,15];
+const QORDER=[0,1,2,3,4,5,7,16,8,9,10,11,12,13,15,14,6];
 const quickText=(p,x,r,y)=>QUICK[p]?QUICK[p].replaceAll('{X}',x||'someone').replace('{Y}',y||'someone').replace('{R}',r||'a hallway'):null;
 
 /* ================= map ================= */
@@ -1006,7 +1006,7 @@ function hostAction(ent,type,d){
   const target=d&&Number.isInteger(d.v)?G.ents[d.v]:null;
   switch(type){
     case 'meet':
-      if(inPlay&&ent.alive&&!G.meetingUsed&&!G.breach&&dist(ent,EMERG)<110){G.meetingUsed=true;startMeeting(ent,null)}break;
+      if(inPlay&&ent.alive&&!G.meetingUsed&&!G.breach&&(G.meetCd||0)<=0.5&&dist(ent,EMERG)<110){G.meetingUsed=true;startMeeting(ent,null)}break;
     case 'report':
       if(inPlay&&ent.alive&&target&&!target.alive&&!target.ejected&&!target.cleared&&!target.bodyFound&&Math.hypot(target.bx-ent.x,target.by-ent.y)<170)startMeeting(ent,target);break;
     case 'task':
@@ -1054,7 +1054,7 @@ function canUse(){
   if(me.glitch&&me.alive&&nearVent(me,46)&&!((me.ventCd||0)>0))return 'vent';
   if(G.lights&&!me.glitch&&dist(me,LIGHTS)<62)return 'lights';
   if(me.alive&&dist(me,MONITOR)<60)return 'cams';
-  if(me.alive&&!G.meetingUsed&&!G.breach&&dist(me,EMERG)<70)return 'meet';
+  if(me.alive&&!G.meetingUsed&&!G.breach&&(G.meetCd||0)<=0&&dist(me,EMERG)<70)return 'meet';
   const s=nearStation();if(!s)return null;
   if(me.glitch)return 'fake';
   return(me.tasks.includes(s.id)&&!me.done.has(s.id))?'task':null;
@@ -1121,7 +1121,7 @@ function update(dt){
   if(G.guest){guestUpdate(dt);return}
   if(G.state==='meeting'||G.state==='end'||G.state==='eject')return;
   G.t+=dt;
-  G.ents.forEach(e=>{if(e.glitch)e.zcd=Math.max(0,(e.zcd||0)-dt)});G.sabCd=Math.max(0,G.sabCd-dt);
+  G.ents.forEach(e=>{if(e.glitch)e.zcd=Math.max(0,(e.zcd||0)-dt)});G.sabCd=Math.max(0,G.sabCd-dt);G.meetCd=Math.max(0,(G.meetCd??5)-dt);
   G.ents.forEach(e=>{if(e.human)e.scanCd=Math.max(0,(e.scanCd||0)-dt);e.ventCd=Math.max(0,(e.ventCd||0)-dt);
     if(e.human&&e.inVent!=null){e.ventTime=(e.ventTime||0)+dt;if(e.ventTime>=15){const v=VENTS[e.inVent];e.inVent=null;e.x=v.x;e.y=v.y+20;e.ventCd=30;ventSeen(e,v);if(e.local)toast('Time is up! You got pushed out of the vent.',2.5);else deliver(e,{t:'ventkick'})}}});
   movePlayer(dt);
@@ -1151,7 +1151,7 @@ function sendSnaps(){
   G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(x.zcd||0):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
 }
 function guestUpdate(dt){
-  const me=G.me;me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
+  const me=G.me;G.meetCd=Math.max(0,(G.meetCd??5)-dt);me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
   if(G.state==='play'||G.state==='task'){
     movePlayer(dt);
     NET.lastPos-=dt;if(NET.lastPos<=0){NET.lastPos=1/15;sendHost({t:'pos',x:Math.round(me.x),y:Math.round(me.y),f:me.face,m:me.moving?1:0})}
@@ -1184,7 +1184,7 @@ function clientMsg(m){
     case 'eject':showEject(m);break;
     case 'resume':
       $('#eject').hidden=true;$('#meeting').hidden=true;
-      if(G.guest){G.me.inVent=null;m.pos.forEach((p,i)=>{const e=G.ents[i];if(!e)return;if(e===G.me){if(e.alive){e.x=p[0];e.y=p[1]}}else{e.x=e.tx=p[0];e.y=e.ty=p[1]}});G.state='play';G.me.scanCd=0}
+      if(G.guest){G.me.inVent=null;G.meetCd=5;m.pos.forEach((p,i)=>{const e=G.ents[i];if(!e)return;if(e===G.me){if(e.alive){e.x=p[0];e.y=p[1]}}else{e.x=e.tx=p[0];e.y=e.ty=p[1]}});G.state='play';G.me.scanCd=0}
       break;
     case 'end':showEnd(m);break;
   }
@@ -1829,7 +1829,7 @@ function hud(){
   const me=G.me,[d,tot]=taskProgress();
   $('#barFill').style.width=(tot?d/tot*100:0)+'%';$('#barTxt').textContent=`Repairs ${d}/${tot}`;
   $('#coins').textContent=save.coins+G.earned;
-  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':(me.glitch&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
+  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':(me.alive&&!G.meetingUsed&&(G.meetCd||0)>0&&dist(me,EMERG)<70)?'MEET '+Math.ceil(G.meetCd):u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':(me.glitch&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
   $('#repBtn').disabled=!(me.alive&&me.inVent==null&&nearBody(me,110));
   const sb=$('#scanBtn');
   if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
@@ -2099,7 +2099,7 @@ function doEject(ej,votes){
     if(ej){ej.alive=false;ej.ejected=true;ej.bx=ej.x;ej.by=ej.y;if(ej.glitch)(votes[ej.id]||[]).forEach(v=>{if(v.human&&!v.glitch)deliver(v,{t:'earn',n:20,msg:'You voted out the Glitch! +20 coins'})})}
     G.ents.forEach(e=>{if(!e.alive)e.cleared=true;e.saw=null;e.nearSaw=null});
     placeAtTable(G.ents.filter(e=>e.alive));
-    G.ents.forEach(e=>{e.scanCd=0;if(e.glitch)e.zcd=Math.max(e.zcd||0,15)});G.state='play';G.resolving=false;
+    G.ents.forEach(e=>{e.scanCd=0;if(e.glitch)e.zcd=Math.max(e.zcd||0,15)});G.state='play';G.resolving=false;G.meetCd=5;
     broadcast({t:'resume',pos:G.ents.map(e=>[Math.round(e.x),Math.round(e.y)])});
     checkWin();
   },4300);
