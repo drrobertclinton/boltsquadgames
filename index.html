@@ -2589,14 +2589,14 @@ function applyFilter(ctx,w,h,f){
     for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const gx=L(x+1,y)-L(x-1,y),gy=L(x,y+1)-L(x,y-1);if(gx*gx+gy*gy>(f==='comic'?2600:3400)){const k=(y*w+x)*4;d[k]=d[k+1]=d[k+2]=20}}}
   ctx.putImageData(im,0,0);
 }
-function drawFx(ctx,size,im,o,f){
+function drawPhotoFx(ctx,size,im,o,f){
   ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,size,size);
   const k=size/Math.min(im.width,im.height)*o.zoom;ctx.translate(size/2,size/2);ctx.rotate(o.rot);ctx.scale(k,k);ctx.drawImage(im,-im.width/2-o.ox,-im.height/2-o.oy);ctx.setTransform(1,0,0,1,0,0);applyFilter(ctx,size,size,f);
 }
 const b36=(n,w)=>Math.max(0,Math.min(36**w-1,Math.round(n))).toString(36).padStart(w,'0');
 function fxEncode(o){const fi=Math.max(0,FILTERS.findIndex(x=>x[0]===o.filter));return b36(fi,1)+b36(((Math.round(o.rot/(Math.PI/2))%4)+4)%4,1)+b36(o.zoom*20,2)+b36(o.ox+640,2)+b36(o.oy+640,2)}
 function fxDecode(s){if(!/^[a-z0-9]{8}$/.test(s||''))return null;const n=(a,b)=>parseInt(s.slice(a,b),36);const f=FILTERS[n(0,1)];return{filter:f?f[0]:'none',rot:n(1,2)*Math.PI/2,zoom:Math.min(4,Math.max(1,n(2,4)/20)),ox:n(4,6)-640,oy:n(6,8)-640}}
-function fxCanvas(im,code){const o=fxDecode(code);if(!o)return im;const cv=document.createElement('canvas');cv.width=cv.height=160;drawFx(cv.getContext('2d'),160,im,o,o.filter);return cv}
+function fxCanvas(im,code){const o=fxDecode(code);if(!o)return im;const cv=document.createElement('canvas');cv.width=cv.height=160;drawPhotoFx(cv.getContext('2d'),160,im,o,o.filter);return cv}
 function edDraw(ctx,size,f){
   const im=ED.img;if(!im)return;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#000';ctx.fillRect(0,0,size,size);
   const base=size/Math.min(im.width,im.height),k=base*ED.zoom;
