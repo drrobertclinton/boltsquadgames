@@ -2199,13 +2199,15 @@ async function lbAdd(n){
   if(save.lbPending){const p=save.lbPending;save.lbPending=0;persist();setTimeout(()=>lbAdd(p),35000)}
 }
 let lbPeriod='day';
+// my setup test games ran before 17:45 UTC on Oct 26; only Rock was a real player then
+function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))return true;return (doc.createTime||'')<'2026-10-26T17:45:00Z'&&id!=='b4iuy2vbtghy'}
 // test games from setup day, not real players
 const LB_HIDE=new Set(['zzsetuptest','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97']);
 async function renderLb(){
   const box=$('#lbList');box.innerHTML='<li><span class="empty">Loading...</span></li>';
   $('#lbTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.p===lbPeriod));
   try{const r=await fetch(FS+':runQuery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({structuredQuery:{from:[{collectionId:lbKeys()[lbPeriod]}],orderBy:[{field:{fieldPath:'coins'},direction:'DESCENDING'}],limit:100}})});
-    if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!LB_HIDE.has(x.document.name.split('/').pop())).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
+    if(!r.ok)throw 0;const rows=(await r.json()).filter(x=>x.document&&!lbHidden(x.document)).map(x=>({id:x.document.name.split('/').pop(),name:x.document.fields.name?.stringValue||'Robot',coins:+(x.document.fields.coins?.integerValue||0)}));
     box.innerHTML=rows.length?rows.map((p,i)=>`<li class="${p.id===save.pid?'me':''}"><span class="rk">${i+1}</span><span>${esc(p.name)}${p.id===save.pid?' (you)':''}</span><span class="cn2">${p.coins.toLocaleString()}</span></li>`).join(''):'<li><span class="empty">No coins yet. Play a game to get on the board!</span></li>';
   }catch(e){box.innerHTML='<li><span class="empty">Could not load the leaderboard. Check your internet.</span></li>'}
 }
