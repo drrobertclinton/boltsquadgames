@@ -913,7 +913,7 @@ function glitchBrain(b,dt){
     if(!v.alive||!rv||rv!==rb){b.chase=null;return}
     if(!b.bold&&witnessCount(b,v)>0){b.chase=null;return}
     const dx=v.x-b.x,dy=v.y-b.y,d=Math.hypot(dx,dy);
-    if(d<34){doZap(b,v);b.chase=null;const vv=VENTS.find(x=>x.room===rb.id);if(vv&&Math.random()<0.6){b.goal='vent';b.ventTo=vv.id;goTo(b,vv.x,vv.y);return}const far=pick(ROOMS.filter(r=>r!==rb));b.goal='flee';goTo(b,far.x+far.w/2+rand(-40,40),far.y+far.h/2+rand(-30,30));return}
+    if(d<34){doZap(b,v);b.chase=null;const vv=VENTS.find(x=>x.room===rb.id);if(vv&&!((b.ventCd||0)>0)&&Math.random()<0.6){b.goal='vent';b.ventTo=vv.id;goTo(b,vv.x,vv.y);return}const far=pick(ROOMS.filter(r=>r!==rb));b.goal='flee';goTo(b,far.x+far.w/2+rand(-40,40),far.y+far.h/2+rand(-30,30));return}
     const sp=140*dt;b.x+=dx/d*sp;b.y+=dy/d*sp;b.face=dx<0?-1:1;b.moving=true;b.path=[];b.wait=0;return;
   }
   b.scanT=(b.scanT||0)-dt;if(b.scanT>0)return;b.scanT=0.6;
@@ -925,7 +925,7 @@ function botUpdate(b,dt){
   b.moving=false;
   if(b.inVent!=null){b.ventT-=dt;if(b.ventT>0)return;
     if(b.ventHop!=null){const v=VENTS[b.ventHop];b.inVent=v.id;b.x=v.x;b.y=v.y;b.ventHop=null;b.ventT=rand(0.8,1.6);return}
-    const v=VENTS[b.inVent];b.inVent=null;b.x=v.x;b.y=v.y+20;ventSeen(b,v);b.wait=0;b.path=[];return}
+    const v=VENTS[b.inVent];b.inVent=null;b.x=v.x;b.y=v.y+20;b.ventCd=30;ventSeen(b,v);b.wait=0;b.path=[];return}
   if(b.glitch&&b.alive){glitchBrain(b,dt);if(b.chase)return}
   if(b.path.length){
     const p=b.path[0],dx=p.x-b.x,dy=p.y-b.y,d=Math.hypot(dx,dy),sp=(b.alive?140:160)*dt;
@@ -1002,11 +1002,11 @@ function hostAction(ent,type,d){
       }break;
     case 'vent':{
       const v=VENTS[d.n];if(!inPlay||!ent.glitch||!ent.alive||!v)return;
-      if(ent.inVent==null){if(dist(ent,v)<70){ventSeen(ent,v);ent.inVent=v.id;ent.x=v.x;ent.y=v.y}}
+      if(ent.inVent==null){if(dist(ent,v)<70&&!((ent.ventCd||0)>0)){ventSeen(ent,v);ent.inVent=v.id;ent.ventTime=0;ent.x=v.x;ent.y=v.y}}
       else if(VENTS[ent.inVent].links.includes(v.id)){ent.inVent=v.id;ent.x=v.x;ent.y=v.y}
       break;}
     case 'ventout':
-      if(ent.inVent!=null){const v=VENTS[ent.inVent];ent.inVent=null;ent.x=v.x;ent.y=v.y+20;if(inPlay)ventSeen(ent,v)}break;
+      if(ent.inVent!=null){const v=VENTS[ent.inVent];ent.inVent=null;ent.x=v.x;ent.y=v.y+20;ent.ventCd=30;if(inPlay)ventSeen(ent,v)}break;
     case 'sab':
       if(inPlay&&ent.glitch&&ent.alive&&G.sabCd<=0&&!G.breach&&!G.lights){if(d&&d.k==='lights')startLights();else startBreach()}break;
     case 'fixlights':
@@ -1031,7 +1031,7 @@ function nearStation(){return STATIONS.find(s=>Math.hypot(s.x-G.me.x,s.y-G.me.y)
 function canUse(){
   const me=G.me;
   if(me.inVent!=null)return 'exit';
-  if(me.glitch&&me.alive&&nearVent(me,46))return 'vent';
+  if(me.glitch&&me.alive&&nearVent(me,46)&&!((me.ventCd||0)>0))return 'vent';
   if(G.lights&&!me.glitch&&dist(me,LIGHTS)<62)return 'lights';
   if(me.alive&&!G.meetingUsed&&!G.breach&&dist(me,EMERG)<70)return 'meet';
   const s=nearStation();if(!s)return null;
@@ -1040,7 +1040,7 @@ function canUse(){
 }
 function doUse(){
   const u=canUse();if(!u)return;
-  if(u==='vent'){const v=nearVent(G.me,46);if(NET.mode==='guest'){G.me.inVent=v.id;G.me.x=v.x;G.me.y=v.y}act('vent',{n:v.id});return}
+  if(u==='vent'){const v=nearVent(G.me,46);if(NET.mode==='guest'){G.me.inVent=v.id;G.me.ventTime=0;G.me.x=v.x;G.me.y=v.y}act('vent',{n:v.id});return}
   if(u==='exit'){ventOut();return}
   if(u==='lights'){openLights();return}
   if(u==='meet')act('meet');
@@ -1048,14 +1048,22 @@ function doUse(){
   else openTask(nearStation());
 }
 function ventGo(n){if(G.me.inVent==null)return;const v=VENTS[n];if(NET.mode==='guest'){G.me.inVent=n;G.me.x=v.x;G.me.y=v.y}act('vent',{n})}
-function ventOut(){if(G.me.inVent==null)return;if(NET.mode==='guest'){const v=VENTS[G.me.inVent];G.me.inVent=null;G.me.x=v.x;G.me.y=v.y+20}act('ventout')}
+function ventOut(){if(G.me.inVent==null)return;if(NET.mode==='guest'){const v=VENTS[G.me.inVent];G.me.inVent=null;G.me.x=v.x;G.me.y=v.y+20;G.me.ventCd=30}act('ventout')}
+const ARROWS=['➡','↘','⬇','↙','⬅','↖','⬆','↗'];
+function ventDir(a,b){const ang=Math.atan2(b.y-a.y,b.x-a.x);return ARROWS[((Math.round(ang/(Math.PI/4))%8)+8)%8]}
 function ventPanel(){
   const me=G.me,box=$('#ventUI');
-  if(me.inVent==null||G.state!=='play'){if(!box.hidden)box.hidden=true;return}
-  const key='v'+me.inVent;if(box.hidden||box.dataset.k!==key){box.dataset.k=key;
-    box.innerHTML='<b>VENT TUNNEL</b>'+VENTS[me.inVent].links.map(n=>`<button data-n="${n}">To ${roomName(VENTS[n].room)}</button>`).join('')+'<button class="out" data-out="1">Climb out</button>';
-    box.querySelectorAll('button').forEach(b=>b.onclick=()=>b.dataset.out?ventOut():ventGo(+b.dataset.n));box.hidden=false}
+  if(!box.hidden)box.hidden=true;return;
+  const key='v'+me.inVent;if(box.hidden||box.dataset.k!==key){box.dataset.k=key;const cur=VENTS[me.inVent];
+    box.innerHTML='<b>VENT TUNNEL <span id="ventLeft"></span></b>'+cur.links.map(n=>`<button data-n="${n}">${ventDir(cur,VENTS[n])} ${roomName(VENTS[n].room)}</button>`).join('')+'<button class="out" data-out="1">Climb out</button>';
+    box.querySelectorAll('button').forEach(b=>b.onclick=e=>{e.stopPropagation();b.dataset.out?ventOut():ventGo(+b.dataset.n)});box.hidden=false}
+  const left=Math.max(0,Math.ceil(15-(me.ventTime||0)));const el=$('#ventLeft');if(el&&el.textContent!==left+'s')el.textContent=left+'s';
 }
+function ventTap(e){
+  if(!G||G.state!=='play'||G.me.inVent==null||!G.ventArrows)return false;const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  const hit=G.ventArrows.find(a=>Math.hypot(a.x-x,a.y-y)<34);if(hit){ventGo(hit.n);return true}return false;
+}
+cv.addEventListener('pointerdown',e=>{if(ventTap(e))e.stopImmediatePropagation()},true);
 function doReport(){if(!G.me.alive||G.me.inVent!=null)return;const v=nearBody(G.me,110);if(v)act('report',{v:v.id})}
 function nearestOther(r){const me=G.me;const v=G.ents.filter(e=>e.alive&&e!==me&&e.inVent==null).sort((a,b)=>dist(a,me)-dist(b,me))[0];return v&&dist(v,me)<r?v:null}
 function doScanZap(){
@@ -1090,7 +1098,8 @@ function update(dt){
   if(G.state==='meeting'||G.state==='end'||G.state==='eject')return;
   G.t+=dt;
   G.zapCd=Math.max(0,G.zapCd-dt);G.sabCd=Math.max(0,G.sabCd-dt);
-  G.ents.forEach(e=>{if(e.human)e.scanCd=Math.max(0,(e.scanCd||0)-dt)});
+  G.ents.forEach(e=>{if(e.human)e.scanCd=Math.max(0,(e.scanCd||0)-dt);e.ventCd=Math.max(0,(e.ventCd||0)-dt);
+    if(e.human&&e.inVent!=null){e.ventTime=(e.ventTime||0)+dt;if(e.ventTime>=15){const v=VENTS[e.inVent];e.inVent=null;e.x=v.x;e.y=v.y+20;e.ventCd=30;ventSeen(e,v);if(e.local)toast('Time is up! You got pushed out of the vent.',2.5);else deliver(e,{t:'ventkick'})}}});
   movePlayer(dt);
   G.ents.forEach(b=>{if(!b.human)botUpdate(b,dt)});
   if(G.state==='end')return;
@@ -1118,7 +1127,7 @@ function sendSnaps(){
   G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(G.zapCd):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
 }
 function guestUpdate(dt){
-  const me=G.me;me.scanCd=Math.max(0,(me.scanCd||0)-dt);
+  const me=G.me;me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
   if(G.state==='play'||G.state==='task'){
     movePlayer(dt);
     NET.lastPos-=dt;if(NET.lastPos<=0){NET.lastPos=1/15;sendHost({t:'pos',x:Math.round(me.x),y:Math.round(me.y),f:me.face,m:me.moving?1:0})}
@@ -1142,6 +1151,7 @@ function clientMsg(m){
       G.breach=m.m.b?{t:m.m.b}:null;G.lights=m.m.l?{}:null;G.meetingUsed=!!m.m.mu;G.prog=m.m.p;G.zapCd=m.z;G.sabCd=m.s;break;}
     case 'toast':toast(m.msg,m.sec||2.3);break;
     case 'earn':G.earned+=m.n;if(m.msg)toast(m.msg);break;
+    case 'ventkick':if(G.guest&&G.me.inVent!=null){const v=VENTS[G.me.inVent];G.me.inVent=null;G.me.x=v.x;G.me.y=v.y+20;G.me.ventCd=30;toast('Time is up! You got pushed out of the vent.',2.5)}break;
     case 'frozen':closeTask();if(G.guest)G.me.alive=false;break;
     case 'meet':showMeeting(m);break;
     case 'chat':addChatLine(m.id,m.text,0);break;
@@ -1693,10 +1703,15 @@ function drawWorld(t){
     if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));label(tagName(e),e.x,e.y-34,e.human?'#9ef0ff':'#e8f4f8')}});
     else if(!e.alive&&!me.alive)draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ghost',t,e.moving,e.visor,facePhoto(e));if(e.human)label(tagName(e),e.x,e.y-34,'#9ef0ff')}});
   });
-  draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent',me.x,me.y-34,'#ff4d6d');return}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());label(tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
+  draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent · '+Math.max(0,Math.ceil(15-(me.ventTime||0)))+'s',me.x,me.y-34,'#ff4d6d');return}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());label(tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
   if(G.state==='play'||G.state==='task')G.ents.forEach(e=>{if(e._wa&&!e.alive&&!e.ejected){if(e===me||dist(e,me)<500)freezeBurst(e.bx||e.x,(e.by||e.y));if(e===me)G.deathFx=t}e._wa=e.alive});else G.ents.forEach(e=>{e._wa=e.alive});
   draws.sort((a,b)=>a.y-b.y).forEach(d=>d.f());
   drawFx(ctx,t);
+  G.ventArrows=null;
+  if(myVent&&G.state==='play'){G.ventArrows=[];const angs=myVent.links.map(n=>Math.atan2(VENTS[n].y-myVent.y,VENTS[n].x-myVent.x));if(angs.length===2&&Math.abs(Math.atan2(Math.sin(angs[0]-angs[1]),Math.cos(angs[0]-angs[1])))<0.9){const m=Math.atan2(Math.sin(angs[0])+Math.sin(angs[1]),Math.cos(angs[0])+Math.cos(angs[1])),sgn=Math.atan2(Math.sin(angs[0]-angs[1]),Math.cos(angs[0]-angs[1]))>=0?1:-1;angs[0]=m+0.55*sgn;angs[1]=m-0.55*sgn}
+    myVent.links.forEach((n,li)=>{const v=VENTS[n],a=angs[li],ax=me.x+Math.cos(a)*78,ay=me.y+Math.sin(a)*78;
+    ctx.save();ctx.translate(ax,ay);ctx.rotate(a);ctx.fillStyle='rgba(255,77,109,'+(0.75+Math.sin(t*6)*0.2)+')';ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(22,0);ctx.lineTo(-12,-18);ctx.lineTo(-4,0);ctx.lineTo(-12,18);ctx.closePath();ctx.fill();ctx.stroke();ctx.restore();
+    label(roomName(v.room),ax,ay+34,'#ffd166');G.ventArrows.push({n,x:(ax-camX)*zoom,y:(ay-camY)*zoom})})}
   ctx.restore();
   const px=(me.x-camX)*zoom,py=(me.y-camY)*zoom,R=vis*zoom;
   const g=ctx.createRadialGradient(px,py,me.alive?R*0.72:R*1.6,px,py,me.alive?R:R*2.6);
@@ -1776,7 +1791,7 @@ function hud(){
   const me=G.me,[d,tot]=taskProgress();
   $('#barFill').style.width=(tot?d/tot*100:0)+'%';$('#barTxt').textContent=`Repairs ${d}/${tot}`;
   $('#coins').textContent=save.coins+G.earned;
-  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':u==='vent'?'VENT':u==='exit'?'EXIT':'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
+  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':u==='vent'?'VENT':u==='exit'?'EXIT':(me.glitch&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
   $('#repBtn').disabled=!(me.alive&&me.inVent==null&&nearBody(me,110));
   const sb=$('#scanBtn');
   if(me.glitch){sb.disabled=!me.alive||me.inVent!=null||G.zapCd>0||!nearestOther(75);$('#scanCd').textContent=G.zapCd>0?Math.ceil(G.zapCd):''}
