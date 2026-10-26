@@ -140,6 +140,9 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .act.scan{background:#1e8573}
 .act.zap{background:#b0103a}
 .act.sab{background:#6b2fa0}
+.act.track{background:#c77d12}
+.act.hide{background:#3b3f9f}
+.act.hide.on{background:#7d84ff}
 .act .cd{font-family:var(--body);font-weight:700;font-size:15px}
 #banner{position:absolute;top:56px;left:50%;transform:translateX(-50%);background:var(--danger);color:#fff;font-family:var(--display);padding:8px 16px;border-radius:12px;font-size:15px;white-space:nowrap;box-shadow:0 6px 20px rgba(255,77,109,.5);animation:pulse .8s infinite alternate}
 @keyframes pulse{to{transform:translateX(-50%) scale(1.05)}}
@@ -343,6 +346,8 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
     <div class="actions">
       <div class="ventui sabui" id="sabUI" hidden><b>SABOTAGE</b><button data-k="lights">💡 Lights out</button><button data-k="breach">🌊 Hull breach (30s)</button><button class="out" data-k="cancel">Cancel</button></div>
       <button class="act sab" id="sabBtn" hidden>SABO<br>TAGE<span class="cd" id="sabCd"></span></button>
+      <button class="act hide" id="hideBtn" hidden>HIDE<span class="cd" id="hideCd"></span></button>
+      <button class="act track" id="trackBtn" hidden>TRACK<span class="cd" id="trackCd"></span></button>
       <button class="act scan" id="scanBtn">SCAN<span class="cd" id="scanCd"></span></button>
       <button class="act rep" id="repBtn">REPORT</button>
       <div class="ventui" id="ventUI" hidden></div>
@@ -649,6 +654,8 @@ const VISORS=[{id:'#5ff0ff',n:'Cyan',cost:0},{id:'#9ef01a',n:'Lime',cost:0},{id:
 const VISOR_IDS=VISORS.map(v=>v.id);
 const REWARDS=PAINTS.filter(p=>p.points).map(p=>({at:p.points,key:'paint:'+p.id,n:p.n+' paint'})).concat(VISORS.filter(v=>v.points).map(v=>({at:v.points,key:'visor:'+v.id,n:v.n+' visor'}))).sort((a,b)=>a.at-b.at);
 const MAXP=10;
+/* Special powers: the Tracker (one secret crew bot) and the Glitch's Hide power (50% of games). */
+const TRACK_USES=2,TRACK_SEC=30,TRACK_CD=30,HIDE_SEC=20,HIDE_CD=30,HIDE_CHANCE=0.5,HIDE_USES=5,POOF_SEC=3;
 const DIFF={easy:{zap:[34,44],start:26,bold:0.25,breach:30,tasks:4,label:'Easy'},normal:{zap:[22,32],start:14,bold:0.1,breach:30,tasks:5,label:'Normal'},hard:{zap:[14,21],start:8,bold:0.03,breach:30,tasks:6,label:'Hard'}};
 const SHARP={easy:{see:250,noise:44,cred:1},normal:{see:330,noise:34,cred:0.8},hard:{see:420,noise:20,cred:0.55}};
 function D(){return DIFF[(G&&G.diff)||'normal']||DIFF.normal}
@@ -838,7 +845,7 @@ window.addEventListener('keydown',e=>{
   const k=e.key.toLowerCase();keys[k]=true;
   if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault();
   if(!G||G.state!=='play')return;
-  if(k==='e')doUse(); if(k==='r')doReport(); if(k==='q')doScanZap(); if(k==='f')doSabotage();
+  if(k==='e')doUse(); if(k==='r')doReport(); if(k==='q')doScanZap(); if(k==='f')doSabotage(); if(k==='t')doTrack(); if(k==='h')doHide();
 });
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
@@ -951,18 +958,27 @@ function newGame(mode,role){
   if(mode==='online'){shuffle(ents.filter(e=>!e.glitch)).slice(0,engCount()).forEach(e=>e.eng=true)}
   G_ENG=ents.filter(e=>e.eng).length;
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
+  ents.forEach(e=>{Object.assign(e,{tracker:false,trackLeft:0,trackCd:0,trackId:null,trackT:0,canHide:false,hideT:0,hideCd:0,hideLeft:0,poofT:0})});
+  if(mode!=='tutorial'){
+    ents.forEach(e=>{if(e.glitch&&e.human&&Math.random()<HIDE_CHANCE){e.canHide=true;e.hideLeft=HIDE_USES}});
+    const crew=ents.filter(e=>!e.glitch&&!e.eng),humCrew=crew.filter(e=>e.human);
+    let tr=null;
+    if(mode==='online')tr=humCrew.length?pick(humCrew):null;
+    else if(!ents[0].glitch&&!ents[0].eng&&Math.random()<0.5)tr=ents[0];
+    if(tr){tr.tracker=true;tr.trackLeft=TRACK_USES}
+  }
   placeAtTable(ents);
   G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
   ents.forEach(e=>{if(e.glitch)e.zcd=e.human?G.zapCd:20});G.nGl=ents.filter(e=>e.glitch).length;
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
-  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,eng:!!e.eng,nEng:G_ENG,mates:e.glitch?ents.filter(o=>o.glitch&&o!==e).map(o=>o.id):[],nGl:ents.filter(o=>o.glitch).length,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
+  ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,eng:!!e.eng,nEng:G_ENG,tracker:e.tracker,canHide:e.canHide,mates:e.glitch?ents.filter(o=>o.glitch&&o!==e).map(o=>o.id):[],nGl:ents.filter(o=>o.glitch).length,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
   enterGameUI(G.me.glitch);
   if(mode==='tutorial')tutStart();
 }
 function guestStart(m){
   const ents=m.roster.map((r,i)=>Object.assign({},r,{x:m.pos[i][0],y:m.pos[i][1],tx:m.pos[i][0],ty:m.pos[i][1],alive:true,face:1,moving:false,bx:0,by:0,cleared:false,ejected:false,bodyFound:false,glitch:false,tasks:[],done:new Set()}));
-  const me=ents[m.myId];me.scansLeft=2;me.glitch=!!m.glitch;me.eng=!m.glitch&&!!m.eng;G_ENG=m.nEng||0;(m.mates||[]).forEach(id=>{if(ents[id])ents[id].mate=true});me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
+  const me=ents[m.myId];me.scansLeft=2;Object.assign(me,{tracker:!!m.tracker,trackLeft:m.tracker?TRACK_USES:0,trackCd:0,trackId:null,trackT:0,canHide:!!m.canHide,hideT:0,hideCd:0,hideLeft:m.canHide?HIDE_USES:0,poofT:0});me.glitch=!!m.glitch;me.eng=!m.glitch&&!!m.eng;G_ENG=m.nEng||0;(m.mates||[]).forEach(id=>{if(ents[id])ents[id].mate=true});me.tasks=m.tasks||[];me.local=true;me.scanCd=0;
   G={nGl:m.nGl||1,ents,me,guest:true,diff:m.diff||'normal',t:0,state:'play',zapCd:12,sabCd:30,breach:null,meetingUsed:false,prog:[0,1],earned:0,hudT:0,tlKey:'',online:true};
   enterGameUI(me.glitch);
 }
@@ -971,11 +987,16 @@ function enterGameUI(isGlitch){
   $('#roleChip').textContent=isGlitch?'GLITCH':'CREW';$('#roleChip').classList.toggle('glitch',isGlitch);
   $('#scanBtn').className='act '+(isGlitch?'zap':'scan');$('#scanBtn').firstChild.textContent=isGlitch?'ZAP':'SCAN';
   $('#sabBtn').hidden=!isGlitch;
+  $('#trackBtn').hidden=!G.me.tracker;$('#hideBtn').hidden=!G.me.canHide;
+  $('#roleChip').textContent=isGlitch?(G.me.canHide?'GLITCH · HIDE':'GLITCH'):(G.me.tracker?'CREW · TRACKER':'CREW');
   const mates=G.ents.filter(e=>isMate(e)).map(e=>e.name);
   toast(isGlitch?(mates.length?`You are a GLITCH with ${mates.join(' and ')}. Their name shows in red. Zap bots when no one is looking.`:'You are the GLITCH. Zap bots when no one is looking.'):(G.nGl>1?'You are CREW. There are 2 Glitches this game. Find them!':'You are CREW. Do your repairs and find the Glitch.'),4);
   $('#roleChip').classList.toggle('eng',!isGlitch&&!!G.me.eng);
   if(!isGlitch&&G.me.eng){$('#roleChip').textContent='ENGINEER';setTimeout(()=>toast('You are an ENGINEER. You are crew, but you can use the vents too. Careful: if someone sees you vent, they may think you are the Glitch!',5),3600)}
   else if(G_ENG>0)setTimeout(()=>toast(`This game has ${G_ENG} secret Engineer${G_ENG>1?'s':''}. Engineers can use vents too, so venting does not prove someone is the Glitch.`,4.5),3600);
+  const g0=G,later=(G.me.eng||G_ENG>0)?9000:4200;
+  if(G.me.tracker)setTimeout(()=>{if(G===g0)toast(`Secret role: TRACKER. Stand near a bot and tap TRACK to see them on your mini map for ${TRACK_SEC} seconds. You get ${TRACK_USES} trackers. Nobody knows you have them.`,6)},later);
+  if(G.me.canHide)setTimeout(()=>{if(G===g0)toast(`Lucky! You got HIDE this game. Tap HIDE to go poof and stay invisible for ${HIDE_SEC} seconds, ${HIDE_USES} times a game. You can't freeze anyone while you're invisible.`,5.5)},later);
 }
 function taskProgress(){if(G.guest)return G.prog;let tot=0,d=0;G.ents.forEach(e=>{if(!e.glitch){tot+=e.tasks.length;d+=e.done.size}});return[d,tot]}
 
@@ -1060,6 +1081,7 @@ function doZap(z,v){
   checkWin();
 }
 function ventSeen(z,v){
+  if((z.hideT||0)>0)return;
   const rv=roomAt(v.x,v.y),room=rv?rv.name:'a hallway';
   G.ents.forEach(o=>{if(o===z||!o.alive||o.glitch||o.human||o.inVent!=null)return;if(dist(o,v)<S().see*0.85&&roomAt(o.x,o.y)===rv){o.sus[z.id]=(o.sus[z.id]||0)+110;o.sawVent={who:z,room}}});
 }
@@ -1098,7 +1120,7 @@ function hostAction(ent,type,d){
     case 'task':
       if(!ent.glitch&&Number.isInteger(d.id)&&ent.tasks.includes(d.id)&&!ent.done.has(d.id)){ent.done.add(d.id);deliver(ent,{t:'earn',n:5,msg:'Repair done! +5 coins'});checkWin()}break;
     case 'zap':
-      if(inPlay&&ent.glitch&&ent.alive&&ent.inVent==null&&(ent.zcd||0)<=0&&target&&!target.glitch&&target.inVent==null&&target!==ent&&target.alive&&dist(ent,target)<100)doZap(ent,target);break;
+      if(inPlay&&ent.glitch&&ent.alive&&ent.inVent==null&&!((ent.hideT||0)>0)&&!((ent.poofT||0)>0)&&(ent.zcd||0)<=0&&target&&!target.glitch&&target.inVent==null&&target!==ent&&target.alive&&dist(ent,target)<100)doZap(ent,target);break;
     case 'scan':
       if(inPlay&&!ent.glitch&&ent.alive&&(ent.scanCd||0)<=0&&(ent.scansLeft??2)>0&&target&&target!==ent&&target.alive&&dist(ent,target)<170){
         ent.scanCd=18;if(!(NET.mode==='guest'&&ent===G.me))ent.scansLeft=(ent.scansLeft??2)-1;const ago=Math.round(G.t-(target.lastZapT??-999)),hot=target.glitch&&ago<45;
@@ -1114,6 +1136,13 @@ function hostAction(ent,type,d){
       if(ent.inVent!=null){const v=VENTS[ent.inVent];ent.inVent=null;ent.x=v.x;ent.y=v.y+20;ent.ventCd=30;if(inPlay)ventSeen(ent,v)}break;
     case 'sab':
       if(inPlay&&ent.glitch&&ent.alive&&G.sabCd<=0&&!G.breach&&!G.lights){if(d&&d.k==='lights')startLights();else startBreach()}break;
+    case 'track':
+      if(inPlay&&ent.tracker&&ent.alive&&(ent.trackCd||0)<=0&&(ent.trackLeft||0)>0&&target&&target!==ent&&target.alive&&dist(ent,target)<170){
+        ent.trackLeft--;ent.trackCd=TRACK_CD;ent.trackId=target.id;ent.trackT=TRACK_SEC;
+        deliver(ent,{t:'toast',sec:3,msg:`Tracker placed on ${target.name}. Watch your mini map for ${TRACK_SEC} seconds.`});
+      }break;
+    case 'hide':
+      if(inPlay&&ent.glitch&&ent.canHide&&ent.alive&&ent.inVent==null&&(ent.hideLeft||0)>0&&(ent.hideT||0)<=0&&(ent.poofT||0)<=0&&(ent.hideCd||0)<=0){ent.hideLeft--;ent.poofT=POOF_SEC;ent.poofStart=performance.now()}break;
     case 'fixlights':
       if(inPlay&&G.lights&&!ent.glitch&&dist(ent,LIGHTS)<120)endLights(true);break;
     case 'vote':
@@ -1178,7 +1207,7 @@ function isMate(e){return G.me.glitch&&e!==G.me&&(e.mate||(!G.guest&&e.glitch))}
 function nearestOther(r){const me=G.me;const v=G.ents.filter(e=>e.alive&&e!==me&&e.inVent==null&&!(me.glitch&&isMate(e))).sort((a,b)=>dist(a,me)-dist(b,me))[0];return v&&dist(v,me)<r?v:null}
 function doScanZap(){
   const me=G.me;if(!me.alive)return;
-  if(me.glitch){if(myZ()>0||me.inVent!=null)return;const v=nearestOther(75);if(v)act('zap',{v:v.id})}
+  if(me.glitch){if((me.hideT||0)>0||(me.poofT||0)>0){toast("You can't freeze anyone while you're invisible.");return}if(myZ()>0||me.inVent!=null)return;const v=nearestOther(75);if(v)act('zap',{v:v.id})}
   else{
     if((me.scanCd||0)>0)return;
     if((me.scansLeft??2)<=0){toast('No scans left this game. You only get 2.');return}
@@ -1187,6 +1216,37 @@ function doScanZap(){
     act('scan',{v:v.id});
   }
 }
+function doTrack(){
+  const me=G.me;if(!me.tracker||!me.alive||G.state!=='play')return;
+  if((me.trackCd||0)>0)return;
+  if((me.trackLeft||0)<=0){toast(`No trackers left. You only get ${TRACK_USES}.`);return}
+  const v=nearestOther(150);if(!v){toast('Get closer to a robot to put a tracker on it.');return}
+  if(NET.mode==='guest'){me.trackLeft--;me.trackCd=TRACK_CD;me.trackId=v.id;me.trackT=TRACK_SEC}
+  act('track',{v:v.id});
+}
+function doHide(){
+  const me=G.me;if(!me.glitch||!me.canHide||!me.alive||G.state!=='play'||me.inVent!=null||(me.hideT||0)>0||(me.poofT||0)>0||(me.hideCd||0)>0)return;
+  if((me.hideLeft||0)<=0){toast(`No hides left. You only get ${HIDE_USES} a game.`);return}
+  if(NET.mode==='guest'){me.hideLeft--;me.poofT=POOF_SEC;me.poofStart=performance.now()}
+  act('hide');toast(`Poof! Going invisible for ${HIDE_SEC} seconds. No freezing until you come back.`,2.5);
+}
+/* Power timers. Runs on every screen; on guests it only keeps the player's own buttons counting down. */
+function powerTick(e,dt){
+  if(e.trackCd>0)e.trackCd=Math.max(0,e.trackCd-dt);
+  if(e.trackT>0){e.trackT=Math.max(0,e.trackT-dt);if(e.trackT===0)e.trackId=null}
+  if(e.hideCd>0)e.hideCd=Math.max(0,e.hideCd-dt);
+  if(e.poofT>0){e.poofT=Math.max(0,e.poofT-dt);if(e.poofT===0)e.hideT=HIDE_SEC}
+  if(e.hideT>0){e.hideT=Math.max(0,e.hideT-dt);if(e.hideT===0){e.hideCd=HIDE_CD;e.reappear=performance.now();if(e.local)toast('You are visible again.',2)}}
+}
+/* Smoke puff in the Glitch's own color. Anyone close enough sees whose color it was, even a little past their normal vision. */
+function drawPoof(c,x,y,col,k,out,t){c.save();for(let i=0;i<9;i++){const a=i/9*Math.PI*2+t*0.6,r=(out?10+k*38:44-k*30)+Math.sin(t*5+i)*3,s=(out?14+k*10:22-k*10);
+  c.globalAlpha=Math.max(0,(out?0.85*(1-k*0.6):0.8*(1-k)));c.fillStyle=col;c.beginPath();c.arc(x+Math.cos(a)*r,y+Math.sin(a)*r*0.7,s,0,7);c.fill();
+  c.globalAlpha*=0.6;c.fillStyle='#ffffff';c.beginPath();c.arc(x+Math.cos(a)*r-3,y+Math.sin(a)*r*0.7-3,s*0.35,0,7);c.fill()}c.restore()}
+function hiddenFromMe(e){return(e.hideT||0)>0&&e!==G.me&&G.me.alive&&!isMate(e)}
+/* How see-through a bot is: fades out over the 3-second poof, then gone (or faint for itself, Glitch teammates and ghosts). */
+function hideAlpha(e){const faint=e===G.me||isMate(e)||!G.me.alive;if((e.hideT||0)>0)return faint?0.35:0;
+  if(e.poofStart&&(e.poofT>0||e.poofing)){const k=Math.min(1,(performance.now()-e.poofStart)/(POOF_SEC*1000));if(!e._poofFx){e._poofFx=1;FX.rings.push({x:e.x,y:e.y,life:0.7})}return faint?1-0.65*k:1-k}
+  e._poofFx=0;return 1}
 function doSabotage(){if(!G.me.glitch||!G.me.alive||G.sabCd>0||G.breach||G.lights)return;const u=$('#sabUI');u.hidden=!u.hidden}
 document.querySelectorAll('#sabUI button').forEach(b=>b.onclick=e=>{e.stopPropagation();$('#sabUI').hidden=true;if(b.dataset.k!=='cancel')act('sab',{k:b.dataset.k})});
 function movePlayer(dt){
@@ -1207,6 +1267,7 @@ function update(dt){
   if(G.guest){guestUpdate(dt);return}
   if(G.state==='meeting'||G.state==='end'||G.state==='eject')return;
   G.t+=dt;
+  G.ents.forEach(e=>powerTick(e,dt));
   G.ents.forEach(e=>{if(e.glitch)e.zcd=Math.max(0,(e.zcd||0)-dt)});G.sabCd=Math.max(0,G.sabCd-dt);G.meetCd=Math.max(0,(G.meetCd??5)-dt);
   G.ents.forEach(e=>{if(e.human)e.scanCd=Math.max(0,(e.scanCd||0)-dt);e.ventCd=Math.max(0,(e.ventCd||0)-dt);
     if(e.human&&e.inVent!=null){e.ventTime=(e.ventTime||0)+dt;if(e.ventTime>=15){const v=VENTS[e.inVent];e.inVent=null;e.x=v.x;e.y=v.y+20;e.ventCd=30;ventSeen(e,v);if(e.local)toast('Time is up! You got pushed out of the vent.',2.5);else deliver(e,{t:'ventkick'})}}});
@@ -1232,12 +1293,12 @@ function update(dt){
   if(G.online){NET.lastSnap-=dt;if(NET.lastSnap<=0){NET.lastSnap=1/12;sendSnaps()}}
 }
 function sendSnaps(){
-  const e=G.ents.map(x=>[x.id,Math.round(x.x),Math.round(x.y),x.face,x.moving?1:0,x.alive?1:0,Math.round(x.bx||0),Math.round(x.by||0),(x.cleared?1:0)|(x.ejected?2:0)|(x.bodyFound?4:0)|(x.inVent!=null?8:0)]);
+  const e=G.ents.map(x=>[x.id,Math.round(x.x),Math.round(x.y),x.face,x.moving?1:0,x.alive?1:0,Math.round(x.bx||0),Math.round(x.by||0),(x.cleared?1:0)|(x.ejected?2:0)|(x.bodyFound?4:0)|(x.inVent!=null?8:0)|((x.hideT||0)>0?16:0)|((x.poofT||0)>0?32:0)]);
   const meta={l:G.lights?1:0,b:G.breach?Math.ceil(G.breach.t):0,mu:G.meetingUsed?1:0,p:taskProgress()};
   G.ents.forEach(x=>{if(x.human&&!x.local&&x.conn&&x.conn.open){try{x.conn.send({t:'snap',e,m:meta,z:x.glitch?Math.ceil(x.zcd||0):0,s:Math.ceil(G.sabCd)})}catch(_){}}});
 }
 function guestUpdate(dt){
-  const me=G.me;G.meetCd=Math.max(0,(G.meetCd??5)-dt);me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
+  const me=G.me;if(G.state==='play'||G.state==='task')powerTick(me,dt);G.meetCd=Math.max(0,(G.meetCd??5)-dt);me.scanCd=Math.max(0,(me.scanCd||0)-dt);me.ventCd=Math.max(0,(me.ventCd||0)-dt);if(me.inVent!=null)me.ventTime=(me.ventTime||0)+dt;
   if(G.state==='play'||G.state==='task'){
     movePlayer(dt);
     NET.lastPos-=dt;if(NET.lastPos<=0){NET.lastPos=1/15;sendHost({t:'pos',x:Math.round(me.x),y:Math.round(me.y),f:me.face,m:me.moving?1:0})}
@@ -1257,7 +1318,7 @@ function clientMsg(m){
   switch(m.t){
     case 'snap':{
       if(!G.guest)return;
-      m.e.forEach(a=>{const e=G.ents[a[0]];if(!e)return;e.alive=!!a[5];e.bx=a[6];e.by=a[7];e.cleared=!!(a[8]&1);e.ejected=!!(a[8]&2);e.bodyFound=!!(a[8]&4);if(e!==G.me){e.inVent=(a[8]&8)?1:null;e.tx=a[1];e.ty=a[2];e.face=a[3];e.moving=!!a[4]}});
+      m.e.forEach(a=>{const e=G.ents[a[0]];if(!e)return;e.alive=!!a[5];e.bx=a[6];e.by=a[7];e.cleared=!!(a[8]&1);e.ejected=!!(a[8]&2);e.bodyFound=!!(a[8]&4);if(e!==G.me){e.inVent=(a[8]&8)?1:null;{const was=e.hideT>0;e.hideT=(a[8]&16)?1:0;if(was&&!e.hideT)e.reappear=performance.now()}const pf=!!(a[8]&32);if(pf&&!e.poofing)e.poofStart=performance.now();e.poofing=pf;e.tx=a[1];e.ty=a[2];e.face=a[3];e.moving=!!a[4]}});
       G.breach=m.m.b?{t:m.m.b}:null;G.lights=m.m.l?{}:null;G.meetingUsed=!!m.m.mu;G.prog=m.m.p;G.zapCd=m.z;G.sabCd=m.s;break;}
     case 'toast':toast(m.msg,m.sec||2.3);break;
     case 'earn':G.earned+=m.n;if(m.msg)toast(m.msg);break;
@@ -1824,12 +1885,16 @@ function drawWorld(t){
   G.ents.forEach(e=>{
     if(!e.alive&&!e.ejected&&!e.cleared&&canSee({x:e.bx,y:e.by}))draws.push({y:e.by,f:()=>drawBot(ctx,e.bx,e.by,e.color,e.hat,1,'frozen',t,false,e.visor)});
     if(e===me)return;
-    if(e.alive&&canSee(e))draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));label(tagName(e),e.x,e.y-34,isMate(e)?'#ff4d6d':e.human?'#9ef0ff':'#e8f4f8')}});
+    if(e.alive&&canSee(e)&&!hiddenFromMe(e))draws.push({y:e.y,f:()=>{const ha=hideAlpha(e),fade=ha<1;if(ha<=0.01)return;if(fade){ctx.save();ctx.globalAlpha=ha}drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));if(fade)ctx.restore();label(tagName(e),e.x,e.y-34,isMate(e)?'#ff4d6d':e.human?'#9ef0ff':'#e8f4f8')}});
     else if(!e.alive&&!me.alive)draws.push({y:e.y,f:()=>{drawBot(ctx,e.x,e.y,e.color,e.hat,e.face,'ghost',t,e.moving,e.visor,facePhoto(e));if(e.human)label(tagName(e),e.x,e.y-34,'#9ef0ff')}});
   });
-  draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent · '+Math.max(0,Math.ceil(15-(me.ventTime||0)))+'s',me.x,me.y-34,'#ff4d6d');return}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());label(tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
+  draws.push({y:me.y,f:()=>{if(myVent){ctx.save();ctx.globalAlpha=0.35;drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,'ok',t,false,me.visor);ctx.restore();label('In the vent · '+Math.max(0,Math.ceil(15-(me.ventTime||0)))+'s',me.x,me.y-34,'#ff4d6d');return}const ha=hideAlpha(me),hid=ha<1;if(hid){ctx.save();ctx.globalAlpha=ha}drawBot(ctx,me.x,me.y,me.color,me.hat,me.face,me.alive?'ok':'ghost',t,me.moving,me.visor,myPhoto());if(hid)ctx.restore();label((me.hideT||0)>0?'Invisible · '+Math.ceil(me.hideT)+'s':(me.poofT||0)>0?'Poof…':tagName(me),me.x,me.y-34,me.glitch?'#ff4d6d':'#ffd166')}});
   if(G.state==='play'||G.state==='task')G.ents.forEach(e=>{if(e._wa&&!e.alive&&!e.ejected){if(e===me||dist(e,me)<500)freezeBurst(e.bx||e.x,(e.by||e.y));if(e===me)G.deathFx=t}e._wa=e.alive});else G.ents.forEach(e=>{e._wa=e.alive});
   draws.sort((a,b)=>a.y-b.y).forEach(d=>d.f());
+  G.ents.forEach(e=>{if(!e.alive||e.inVent!=null||dist(e,me)>vis+220)return;const now=performance.now();let k=-1,out=true;
+    if(e.poofStart&&(e.poofT>0||e.poofing))k=Math.min(1,(now-e.poofStart)/(POOF_SEC*1000));
+    else if(e.reappear&&now-e.reappear<1200){k=(now-e.reappear)/1200;out=false}
+    if(k<0)return;drawPoof(ctx,e.x,e.y-14,e.color,k,out,t)});
   drawFx(ctx,t);
   G.ventArrows=null;
   if(myVent&&G.state==='play'){G.ventArrows=[];const angs=myVent.links.map(n=>Math.atan2(VENTS[n].y-myVent.y,VENTS[n].x-myVent.x));if(angs.length===2&&Math.abs(Math.atan2(Math.sin(angs[0]-angs[1]),Math.cos(angs[0]-angs[1])))<0.9){const m=Math.atan2(Math.sin(angs[0])+Math.sin(angs[1]),Math.cos(angs[0])+Math.cos(angs[1])),sgn=Math.atan2(Math.sin(angs[0]-angs[1]),Math.cos(angs[0]-angs[1]))>=0?1:-1;angs[0]=m+0.55*sgn;angs[1]=m-0.55*sgn}
@@ -1869,6 +1934,10 @@ function drawMap(cv2,mini){
   if(me.glitch||me.eng)VENTS.forEach(v=>{c.fillStyle='#6b8496';rr(c,v.x-16,v.y-10,32,20,4);c.fill()});
   if(G.breach){c.fillStyle='#ff4d6d';c.beginPath();c.arc(BREACH.x,BREACH.y,18+Math.sin(t*8)*5,0,7);c.fill()}
   if(G.lights&&!me.glitch){c.fillStyle='#ffd166';c.beginPath();c.arc(LIGHTS.x,LIGHTS.y,16+Math.sin(t*8)*4,0,7);c.fill()}
+  if(me.trackId!=null&&me.trackT>0){const tg=G.ents[me.trackId];if(tg&&tg.alive){const r=mini?34:16,pulse=Math.sin(t*6);
+    c.strokeStyle='#ff9f1c';c.lineWidth=mini?10:5;c.beginPath();c.arc(tg.x,tg.y,r*1.9+pulse*(mini?10:4),0,7);c.stroke();
+    c.fillStyle=tg.color;c.strokeStyle='#ff9f1c';c.lineWidth=mini?8:4;c.beginPath();c.arc(tg.x,tg.y,r,0,7);c.fill();c.stroke();
+    c.font=(mini?'58px':'30px')+' Bungee, Arial Black, sans-serif';c.textAlign='center';c.fillStyle='#ff9f1c';c.fillText(tg.name+' '+Math.ceil(me.trackT)+'s',tg.x,tg.y-r*2.4);c.textAlign='left'}}
   c.fillStyle='rgba(255,209,102,.35)';c.beginPath();c.arc(me.x,me.y,(mini?70:34)+Math.sin(t*5)*(mini?14:8),0,7);c.fill();
   c.fillStyle='#ffd166';c.strokeStyle='#04111e';c.lineWidth=mini?9:5;c.beginPath();c.arc(me.x,me.y,mini?38:18,0,7);c.fill();c.stroke();
   if(!mini)$('#mapVentKey').hidden=!(me.glitch||me.eng);
@@ -1930,6 +1999,9 @@ function hud(){
   const sb=$('#scanBtn');
   if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
   else{const left=me.scansLeft??2;sb.disabled=!me.alive||(me.scanCd||0)>0||left<=0;$('#scanCd').textContent=(me.scanCd||0)>0?Math.ceil(me.scanCd):(left+' left')}
+  if(me.tracker){const tb=$('#trackBtn'),left=me.trackLeft||0;tb.disabled=!me.alive||G.state!=='play'||(me.trackCd||0)>0||left<=0;$('#trackCd').textContent=(me.trackCd||0)>0?Math.ceil(me.trackCd):(left+' left')}
+  if(me.canHide){const hb=$('#hideBtn'),on=(me.hideT||0)>0||(me.poofT||0)>0,left=me.hideLeft||0;hb.classList.toggle('on',on);hb.disabled=!me.alive||G.state!=='play'||on||(me.hideCd||0)>0||left<=0||me.inVent!=null;$('#hideCd').textContent=on?Math.ceil((me.poofT||0)+(me.hideT||0)):((me.hideCd||0)>0?Math.ceil(me.hideCd):(left+' left'))}
+  if(me.glitch&&((me.hideT||0)>0||(me.poofT||0)>0))sb.disabled=true;
   $('#sabBtn').disabled=G.sabCd>0||!!G.breach||!!G.lights;if($('#sabBtn').disabled||G.state!=='play')$('#sabUI').hidden=true;$('#sabCd').textContent=G.sabCd>0?Math.ceil(G.sabCd):'';
   const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else if(G.lights){bn.hidden=false;bn.textContent='LIGHTS OUT · PANEL IN CENTRAL HUB'}else bn.hidden=true;
   let html;
@@ -1940,7 +2012,7 @@ function hud(){
 }
 let toastTimer=null;
 function toast(msg,sec=2.3){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,sec*1000)}
-$('#useBtn').onclick=doUse;$('#repBtn').onclick=doReport;$('#scanBtn').onclick=doScanZap;$('#sabBtn').onclick=doSabotage;
+$('#useBtn').onclick=doUse;$('#repBtn').onclick=doReport;$('#scanBtn').onclick=doScanZap;$('#sabBtn').onclick=doSabotage;$('#trackBtn').onclick=doTrack;$('#hideBtn').onclick=doHide;
 function askLeave(){const sq=NET.mode!=='off';$('#leaveTitle').textContent=sq?'Leave the squad?':'Leave this game?';$('#leaveNote').textContent=sq?(NET.mode==='host'?"You're the squad leader, so the game ends for everyone.":'You can join again with the squad code.'):"You'll lose this round and go back to the menu.";$('#leaveConfirm').hidden=false}
 $('#quitBtn').onclick=()=>{closeTask();closeMap();closeCams();$('#sabUI').hidden=true;askLeave()};
 $('#leaveYes').onclick=()=>{$('#leaveConfirm').hidden=true;G=null;leaveNet();showMenu()};
@@ -1979,7 +2051,7 @@ function drawCams(){
       Object.assign(VIEW,sv);
       const inside=e=>e.x>=r.x-10&&e.x<=r.x+r.w+10&&e.y>=r.y-10&&e.y<=r.y+r.h+10;
       G.ents.forEach(e=>{if(!e.alive&&!e.ejected&&!e.cleared&&e.bx>=r.x&&e.bx<=r.x+r.w&&e.by>=r.y&&e.by<=r.y+r.h)drawBot(c,e.bx,e.by,e.color,e.hat,1,'frozen',t,false,e.visor)});
-      G.ents.filter(e=>e.alive&&e.inVent==null&&inside(e)).sort((a,b)=>a.y-b.y).forEach(e=>{drawBot(c,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));c.font='600 13px "Chakra Petch", sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(e.name,e.x,e.y-34);c.fillStyle='#e8f4f8';c.fillText(e.name,e.x,e.y-34);c.textAlign='left'});
+      G.ents.filter(e=>e.alive&&e.inVent==null&&inside(e)&&!hiddenFromMe(e)).sort((a,b)=>a.y-b.y).forEach(e=>{drawBot(c,e.x,e.y,e.color,e.hat,e.face,'ok',t,e.moving,e.visor,facePhoto(e));c.font='600 13px "Chakra Petch", sans-serif';c.textAlign='center';c.lineWidth=3;c.strokeStyle='rgba(0,0,0,.8)';c.strokeText(e.name,e.x,e.y-34);c.fillStyle='#e8f4f8';c.fillText(e.name,e.x,e.y-34);c.textAlign='left'});
       c.setTransform(1,0,0,1,0,0);
       c.fillStyle='rgba(0,0,0,.12)';for(let y=qy+((t*30)%4);y<qy+H;y+=4)c.fillRect(qx,y,W,1);
     }
@@ -2130,6 +2202,7 @@ let meetTimeout=null,meetTick=null;
 function topSus(b){let best=null,bv=14;G.ents.forEach(o=>{if(o!==b&&o.alive&&(b.sus[o.id]||0)>bv){bv=b.sus[o.id];best=o}});return best}
 function startMeeting(reporter,body){
   G.state='meeting';if(G.breach)endBreach(false);if(G.lights)endLights(false);
+  G.ents.forEach(e=>{if(e.hideT>0||e.poofT>0){e.hideT=0;e.poofT=0;e.hideCd=HIDE_CD}});
   G.ents.forEach(e=>{e.chase=null;e.spot=0});
   const lines=[],last=G.freezes[G.freezes.length-1],say=(e,text)=>lines.push({id:e?e.id:null,text});
   if(body){body.bodyFound=true;if(reporter.human)say(reporter,`I found ${body.name} frozen!`);else say(reporter,`I found ${body.name} frozen in ${reporter.glitch?pick(ROOMS).name:placeName(body.bx,body.by)}!`)}
@@ -2208,6 +2281,7 @@ function addChatLine(id,text,delay){
   const chat=$('#chat');chat.appendChild(d);chat.scrollTop=chat.scrollHeight;
 }
 function showMeeting(m){
+  if(G&&G.me&&(G.me.hideT>0||G.me.poofT>0)){G.me.hideT=0;G.me.poofT=0;G.me.hideCd=HIDE_CD}
   if(!(G.tut&&!G.tut.done))$('#meetTip').hidden=true;
   closeTask();G.state='meeting';joy=null;G.meetAlive=new Set(m.alive);G.myVote=null;G.votedSet=new Set();G.voteResult=null;
   $('#meetTitle').textContent=m.title;$('#chat').innerHTML='';
