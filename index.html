@@ -93,6 +93,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 .photorow{display:flex;gap:12px;align-items:center}.photorow canvas{width:80px;height:80px;border-radius:14px;background:#081a2a;border:2px solid var(--line);flex:none}.photobtns{display:grid;gap:8px;flex:1;min-width:0}.photobtns .big{font-size:13px;padding:10px 12px;text-align:center;cursor:pointer}
 .pubbox{display:grid;gap:6px;background:#0c2a42;border:1px dashed var(--line);border-radius:12px;padding:10px;margin-bottom:12px;font-size:13px}.pubbox b{font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}.pubbox .big{font-size:13px;padding:10px}
 .repflag{position:absolute;top:4px;right:6px;font-size:14px;color:#ff8fb8;cursor:pointer;padding:2px 4px;border-radius:6px;background:rgba(0,0,0,.35)}.vc{position:relative}
+.zapset .zarrow{width:40px;padding:6px 0!important;font-size:15px}.zapset .zarrow:disabled{opacity:.35}.zapset .zval{min-width:64px;text-align:center;font-family:Bungee,sans-serif;font-weight:400;color:var(--sun)}
 .cbrow{display:flex;gap:10px;align-items:center;font-weight:600;padding:6px 0}
 .cbrow input{width:22px;height:22px;accent-color:#3ad1b8}
 .sw .cn{position:absolute;inset:auto 2px 2px 2px;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.1}
@@ -389,6 +390,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
       <p class="note" id="lobbyStatus"></p>
       <div class="myava"><canvas id="lobbyAva" width="128" height="128" aria-label="Your robot"></canvas><div class="myava-r"><b id="lobbyMyName"></b><button class="big ghost" id="lobbyCustom">Customize robot</button></div></div>
       <div class="diff" id="diffLobby"></div>
+      <div class="diff zapset" id="zapLobby"></div>
       <div class="plist" id="plist"></div>
       <div class="row2">
         <button class="big" id="lobbyStart">Start Game</button>
@@ -810,7 +812,7 @@ function hostDrop(conn){
 function sendLobby(){
   const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor,fp:p.fp||''}));
   NET.list=list;
-  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff})}catch(e){}}});
+  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec()})}catch(e){}}});
   if(!NET.inGame)renderLobby();
 }
 function joinSquad(code){
@@ -852,7 +854,7 @@ function newGame(mode,role){
   g.glitch=true;
   ents.forEach(e=>{if(!e.glitch)e.tasks=shuffle(STATIONS.map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4)});
   placeAtTable(ents);
-  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?12:20,sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
+  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():0,sabCd:30,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
   ents.forEach(e=>{if(e.human&&!e.local)deliver(e,{t:'start',myId:e.id,glitch:e.glitch,tasks:e.tasks,diff:G.diff,roster,pos:ents.map(r=>[Math.round(r.x),Math.round(r.y)])})});
@@ -940,7 +942,7 @@ function botUpdate(b,dt){
 /* ================= host rules ================= */
 function doZap(z,v){
   v.alive=false;v.frozenAt=G.t;v.bx=v.x;v.by=v.y;v.path=[];v.wait=0;v.task=null;v.bodyFound=false;v.cleared=false;v.breachDuty=false;
-  G.zapCd=z.human?22:rand(D().zap[0],D().zap[1]);z.lastZapT=G.t;
+  G.zapCd=G.zapSec?G.zapSec:(z.human?22:rand(D().zap[0],D().zap[1]));z.lastZapT=G.t;
   const room=placeName(v.x,v.y),info={killer:z,victim:v,room,where:{}};
   G.ents.forEach(o=>{info.where[o.id]=placeName(o.x,o.y)});
   G.ents.forEach(o=>{
@@ -1139,7 +1141,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:30;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -2220,6 +2222,13 @@ function renderPal(box){
     else{save.palette=b.dataset.k;const cs=COLS();if(!cs.includes(save.color)&&!PAINTS.some(p=>p.id===save.color))save.color=cs[0]}
     persist();renderPal(box);if(NET.mode!=='off'){sendAvatar();if(!$('#lobby').hidden)renderLobby()}});
 }
+const ZAPS=[5,10,15,20,25,30,35,40,45,50,55,60];
+function zapSec(){return ZAPS.includes(save.zapSec)?save.zapSec:30}
+function renderZap(box,canEdit){
+  if(!box)return;const v=canEdit?zapSec():(NET.zap||30),i=ZAPS.indexOf(v);
+  box.innerHTML=`<span>Zap cooldown (kill cooldown)</span>${canEdit?`<button class="zarrow" data-d="-1" aria-label="Shorter" ${i<=0?'disabled':''}>◀</button>`:''}<b class="zval">${v} sec</b>${canEdit?`<button class="zarrow" data-d="1" aria-label="Longer" ${i>=ZAPS.length-1?'disabled':''}>▶</button>`:''}`;
+  if(canEdit)box.querySelectorAll('.zarrow').forEach(b=>b.onclick=()=>{const j=Math.max(0,Math.min(ZAPS.length-1,ZAPS.indexOf(zapSec())+(+b.dataset.d)));save.zapSec=ZAPS[j];persist();renderZap(box,true);if(NET.mode==='host')sendLobby()});
+}
 function renderDiff(box,canEdit){
   if(!box)return;
   if(!canEdit){box.innerHTML=`<span>Robot smarts</span><b>${DIFF[NET.diff||save.diff].label}</b>`;return}
@@ -2233,7 +2242,7 @@ function renderLobby(){
   $('#plist').innerHTML=list.map((p,i)=>`<div class="prow"><canvas width="68" height="68" data-i="${i}"></canvas>${esc(p.name)}<span class="tag">${i===0?'Squad leader':'Ready'}</span></div>`).join('')+(list.length<MAXP?`<div class="prow empty">${MAXP-list.length} open spot${MAXP-list.length>1?'s':''} · robots fill in</div>`:'');
   $('#plist').querySelectorAll('canvas').forEach(c=>drawAva(c,list[+c.dataset.i]));
   drawAva($('#lobbyAva'),save);$('#lobbyMyName').textContent=cleanName(save.name);
-  renderDiff($('#diffLobby'),host);renderPal($('#palLobby'));
+  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderPal($('#palLobby'));
   $('#lobbyStart').hidden=!host;
   $('#lobbyStatus').textContent=host?'Tell your friends to open boltsquadgames.com, tap Play with Friends, then Join and type this code.':'You\'re in! Customize your robot while you wait for the squad leader to start.';
 }
