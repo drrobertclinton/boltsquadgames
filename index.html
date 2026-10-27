@@ -2477,7 +2477,7 @@ $('#ideaSend').onclick=async()=>{
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const body={writes:[{update:{name:'projects/bolt-squad/databases/(default)/documents/ideas/'+id,fields:{text:{stringValue:text.slice(0,600)},from:{stringValue:cleanName(save.name).slice(0,15)},v:{stringValue:'beta-1'}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}],currentDocument:{exists:false}}]};
   try{const res=await fetch('https://firestore.googleapis.com/v1/projects/bolt-squad/databases/(default)/documents:commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();notify(ideaKind==='new'?'Bolt Squad: new game idea':'Bolt Squad: new idea',`New idea from ${cleanName(save.name)}:\n\n${text}\n\nAll ideas: https://boltsquadgames.com/review.html`,IDEA_CC);$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
+    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();ideaDrop(text);notify(ideaKind==='new'?'Bolt Squad: new game idea':'Bolt Squad: new idea',`New idea from ${cleanName(save.name)}:\n\n${text}\n\nAll ideas: https://boltsquadgames.com/review.html`,IDEA_CC);$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
   catch(e){$('#ideaStatus').textContent='Could not send. Check your internet and try again.'}
   $('#ideaSend').disabled=false;
 };
@@ -2698,6 +2698,9 @@ function loadPhoto(){PHOTO_IMG=null;if(save.photo){const im=new Image();im.onloa
 function myPhoto(){return save.photoOn&&PHOTO_IMG?PHOTO_IMG:null}
 loadPhoto();
 const NOTIFY_TO='support@boltsquadgames.com';
+// ideas are also dropped into one shared save slot that Claude reads (the ideas collection is admin-only)
+const IDEA_DROP='R8323VK4TG';
+async function ideaDrop(text){if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;for(let i=0;i<2;i++){try{const cur=await cloudGet(IDEA_DROP),list=Array.isArray(cur.ideas)?cur.ideas:[];list.push({from:cleanName(save.name).slice(0,15),text,at:new Date().toISOString()});await cloudPut(IDEA_DROP,{ideas:list.slice(-200)});return}catch(e){}}}
 // idea emails also go to Robert's Gmail, where Claude picks them up
 const IDEA_CC='drrobertclinton@gmail.com';
 function notify(subject,text,cc){
