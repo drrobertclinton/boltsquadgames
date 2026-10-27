@@ -386,7 +386,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
           </div>
           <button class="big ghost" id="openLb" style="width:100%;margin-top:10px">🏆 Leaderboard</button>
           <button class="big ghost" id="tutBtn">Tutorial · learn in 2 minutes</button>
-          <button class="big ghost ideabtn" id="openIdea">💡 Send an idea (beta)</button>
+          <button class="big ghost ideabtn" id="openIdea">💡 Send an idea to Claude (beta)</button>
         </div>
         <p class="soon">Start a squad, send your friends the code, and play the same game together. Up to 10 players.</p>
       </div>
@@ -504,7 +504,8 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
     <div class="panel" style="max-width:460px">
       <button class="x" id="ideaClose" aria-label="Close">×</button>
       <h2>Idea Box</h2>
-      <p class="note">Bolt Squad is in testing. Tell us what to add or fix. Tap Talk and say it, or type it.</p>
+      <div class="stabs" id="ideaTabs"><button data-k="game" class="on">Bolt Squad idea</button><button data-k="new">New game or app</button></div>
+      <p class="note" id="ideaNote">Bolt Squad is in testing. Tell us what to add or fix. Tap Talk and say it, or type it. It goes straight to Claude and Dad.</p>
       <textarea id="ideaText" maxlength="600" rows="5" placeholder="My idea is..."></textarea>
       <div class="ideacount"><span id="ideaStatus"></span><span id="ideaCount">0/600</span></div>
       <div class="row2"><button class="big ghost" id="ideaMic">🎤 Talk</button><button class="big" id="ideaSend">Send idea</button></div>
@@ -2453,6 +2454,9 @@ $('#joinBtn').onclick=()=>joinSquad($('#codeIn').value);
 $('#codeIn').addEventListener('keydown',e=>{if(e.key==='Enter')joinSquad($('#codeIn').value)});
 const BETA_IDEAS=true;
 let ideaRec=null,ideaLast=0;
+let ideaKind='game';
+function setIdeaKind(k){ideaKind=k;$('#ideaTabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.k===k));$('#ideaNote').textContent=k==='new'?'Got an idea for a brand new game or app? Tell Claude all about it: what you do, what it looks like, what makes it fun. It goes straight to Claude and Dad.':'Bolt Squad is in testing. Tell us what to add or fix. Tap Talk and say it, or type it. It goes straight to Claude and Dad.';$('#ideaText').placeholder=k==='new'?'My game idea is...':'My idea is...'}
+$('#ideaTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>setIdeaKind(b.dataset.k));
 function openIdea(){$('#ideaStatus').textContent='';$('#idea').hidden=false;$('#ideaMic').hidden=!(window.SpeechRecognition||window.webkitSpeechRecognition)}
 function closeIdea(){stopMic();$('#idea').hidden=true}
 function stopMic(){if(ideaRec){const r=ideaRec;ideaRec=null;try{r.stop()}catch(e){}}$('#ideaMic').classList.remove('rec');$('#ideaMic').textContent='🎤 Talk'}
@@ -2467,13 +2471,13 @@ $('#ideaMic').onclick=()=>{
   try{r.start();ideaRec=r;$('#ideaMic').classList.add('rec');$('#ideaMic').textContent='⏹ Stop';$('#ideaStatus').textContent='Listening...'}catch(e){stopMic()}
 };
 $('#ideaSend').onclick=async()=>{
-  stopMic();const text=$('#ideaText').value.trim();if(!text){$('#ideaStatus').textContent='Say or type your idea first.';return}
+  stopMic();const raw=$('#ideaText').value.trim(),text=raw&&ideaKind==='new'?'[NEW GAME/APP] '+raw:raw;if(!text){$('#ideaStatus').textContent='Say or type your idea first.';return}
   if(Date.now()-ideaLast<20000){$('#ideaStatus').textContent='Thanks! Wait a few seconds before sending another.';return}
   $('#ideaSend').disabled=true;$('#ideaStatus').textContent='Sending...';
   const id=Date.now().toString(36)+Math.random().toString(36).slice(2,8);
   const body={writes:[{update:{name:'projects/bolt-squad/databases/(default)/documents/ideas/'+id,fields:{text:{stringValue:text.slice(0,600)},from:{stringValue:cleanName(save.name).slice(0,15)},v:{stringValue:'beta-1'}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}],currentDocument:{exists:false}}]};
   try{const res=await fetch('https://firestore.googleapis.com/v1/projects/bolt-squad/databases/(default)/documents:commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();notify('Bolt Squad: new idea',`New idea from ${cleanName(save.name)}:\n\n${text}\n\nAll ideas: https://boltsquadgames.com/review.html`);$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
+    if(!res.ok)throw new Error(res.status);ideaLast=Date.now();notify(ideaKind==='new'?'Bolt Squad: new game idea':'Bolt Squad: new idea',`New idea from ${cleanName(save.name)}:\n\n${text}\n\nAll ideas: https://boltsquadgames.com/review.html`,IDEA_CC);$('#ideaText').value='';$('#ideaCount').textContent='0/600';$('#ideaStatus').textContent='Sent! Thanks for the idea.';setTimeout(()=>{if(!$('#idea').hidden)closeIdea()},1400)}
   catch(e){$('#ideaStatus').textContent='Could not send. Check your internet and try again.'}
   $('#ideaSend').disabled=false;
 };
@@ -2694,9 +2698,11 @@ function loadPhoto(){PHOTO_IMG=null;if(save.photo){const im=new Image();im.onloa
 function myPhoto(){return save.photoOn&&PHOTO_IMG?PHOTO_IMG:null}
 loadPhoto();
 const NOTIFY_TO='support@boltsquadgames.com';
-function notify(subject,text){
+// idea emails also go to Robert's Gmail, where Claude picks them up
+const IDEA_CC='drrobertclinton@gmail.com';
+function notify(subject,text,cc){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
-  try{fetch('https://formsubmit.co/ajax/'+NOTIFY_TO,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({_subject:subject,message:text,_template:'box',_captcha:'false'})}).catch(()=>{})}catch(e){}
+  try{fetch('https://formsubmit.co/ajax/'+NOTIFY_TO,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({_subject:subject,message:text,_template:'box',_captcha:'false',...(cc?{_cc:cc}:{})})}).catch(()=>{})}catch(e){}
 }
 const FACES={};
 function facePhoto(e){
