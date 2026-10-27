@@ -41,7 +41,7 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   <section id="secReported" hidden><h2>Reported pictures</h2><div class="grid" id="reported"></div></section>
   <section id="secPending" hidden><h2>Pictures waiting for approval</h2><div class="grid" id="pending"></div></section>
   <section id="secApproved" hidden><h2>Approved pictures</h2><div class="grid" id="approved"></div></section>
-  <section id="secLb" hidden><h2>Leaderboard players</h2><p class="empty" style="margin:0 0 8px">Remove takes a player off today, this week, this month and all time.</p><div class="ideas" id="lbAdmin"></div></section>
+  <section id="secLb" hidden><h2>Leaderboard players</h2><p class="empty" style="margin:0 0 8px">Remove takes a player off today, this week, this month and all time.</p><button class="no" id="lbBots" hidden style="margin-bottom:10px">Remove all test bots</button><div class="ideas" id="lbAdmin"></div></section>
   <section id="secIdeas" hidden><h2>Idea Box</h2><div class="ideas" id="ideas"></div></section>
 </div>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -90,6 +90,9 @@ async function load(){
   const lb=await db.collection('lb_all').orderBy('coins','desc').limit(200).get(),la=$('#lbAdmin');la.innerHTML='';
   lb.forEach(d=>{const f=d.data(),el=document.createElement('div');el.className='idea';el.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span><b>${esc(f.name)}</b> · ${(f.coins||0).toLocaleString()} coins</span><button class="no">Remove</button></div><div class="meta">Last game ${when(f.at)} · id ${esc(d.id)}</div>`;
     el.querySelector('button').onclick=async e=>{e.target.disabled=true;const b=db.batch();lbKeys().forEach(k=>b.delete(db.collection(k).doc(d.id)));await b.commit();el.remove()};la.appendChild(el)});
+  // Claude's play-test robots all used the name Sparky
+  const bots=lb.docs.filter(d=>d.data().name==='Sparky'),bb=$('#lbBots');bb.hidden=!bots.length;bb.textContent='Remove all test bots ('+bots.length+')';
+  bb.onclick=async()=>{bb.disabled=true;for(let i=0;i<bots.length;i+=100){const b=db.batch();bots.slice(i,i+100).forEach(d=>lbKeys().forEach(k=>b.delete(db.collection(k).doc(d.id))));await b.commit()}bb.disabled=false;load()};
   if(!la.children.length)la.innerHTML='<p class="empty">No players yet.</p>';
   const ideas=await db.collection('ideas').orderBy('at','desc').limit(200).get();
   const ib=$('#ideas');ib.innerHTML='';
