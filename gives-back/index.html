@@ -1,0 +1,43 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Vilasi Gives Back</title><meta name="theme-color" content="#7a3b1f"><link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#fbf7f2;--card:#fff;--ink:#2a1d14;--accent:#b5562a;--accent2:#7a3b1f;--muted:#6b5a4c;--line:#eadfd3;--green:#2f7d4f}
+*{box-sizing:border-box;margin:0}body{background:var(--bg);color:var(--ink);font:16px/1.55 Georgia,'Times New Roman',serif;padding-bottom:84px}
+.ui{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:20px 16px 12px;text-align:center;border-bottom:1px solid var(--line);background:#fff}header small{letter-spacing:.25em;text-transform:uppercase;color:var(--accent);font:700 11px system-ui}header h1{font-size:26px}
+main{max-width:640px;margin:0 auto;padding:16px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+h2{font-size:22px;margin-bottom:6px}h3{font:700 15px system-ui;margin:14px 0 6px;color:var(--accent2);text-transform:uppercase;letter-spacing:.08em}
+.muted{color:var(--muted);font-size:14px}.hero{background:linear-gradient(160deg,#f6e3d3,#fbf7f2);border:0}
+.bar{height:14px;border-radius:8px;background:#efe5da;overflow:hidden;margin:8px 0}.bar i{display:block;height:100%;background:var(--green)}
+.imp{display:flex;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.imp:last-child{border:0}.imp b{font:800 20px system-ui;color:var(--accent);min-width:64px}
+button,a.btn{font:700 16px system-ui;border-radius:12px;border:0;background:var(--accent);color:#fff;padding:14px 18px;cursor:pointer;text-decoration:none;display:inline-block;width:100%;text-align:center}
+button.sec{background:#fff;color:var(--accent2);border:1px solid var(--line)}
+nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom)}nav button{flex:1;border-radius:0;background:#fff;color:var(--muted);font:500 13px system-ui;padding:12px 4px;width:auto}nav button.on{color:var(--accent);font-weight:700}
+.hide{display:none!important}.banner{background:#fff4d6;border:1px solid #f0d78f;border-radius:12px;padding:10px 12px;font:14px system-ui;margin-bottom:14px}
+#sheet{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:flex-end;z-index:9}#sheet .in{background:#fff;border-radius:18px 18px 0 0;padding:20px;max-width:640px;margin:0 auto;width:100%}
+</style></head><body>
+<header><small>Vilasi</small><h1>Gives Back</h1></header>
+<main id="m"><p class="muted ui">Loading…</p></main>
+<div id="sheet" class="hide"><div class="in ui"><h2 style="font-family:Georgia">Giving to <span id="shName"></span></h2><p style="margin:8px 0 14px">You'll give on the charity's own secure website. Vilasi never handles your money or sees your details. Gifts go straight to the charity.</p><a class="btn" id="shGo" target="_blank" rel="noopener">Continue to the charity's site</a><p style="margin-top:10px"><button class="sec" id="shX">Not now</button></p></div></div>
+<nav class="ui"><button data-v="now" class="on">This month</button><button data-v="past">Past causes</button><button data-v="about">About</button></nav>
+<script>
+let D,view='now';const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mname=m=>new Date(m+'-15').toLocaleDateString(undefined,{month:'long',year:'numeric'});
+fetch('causes.json',{cache:'no-cache'}).then(r=>r.json()).then(j=>{D=j;render()}).catch(()=>{$('#m').innerHTML='<div class="card ui">Could not load this month\'s cause. Check your connection and try again.</div>'});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));render();scrollTo(0,0)});
+function cause(c,full){const pct=c.goal?Math.min(100,Math.round((c.raised+c.pledged)/c.goal*100)):0;
+ return `<div class="card hero"><p class="muted ui">${mname(c.month)}</p><h2>${esc(c.name)}</h2><p class="muted ui">with ${esc(c.org)}</p><p style="margin-top:10px">${esc(c.story)}</p></div>
+ <div class="card"><h3>What your gift does</h3>${c.impact.map(i=>`<div class="imp"><b>$${i.amt}</b><span>${esc(i.what)}</span></div>`).join('')}
+ <p style="margin-top:14px"><button class="give" data-c="${c.month}">Give on the charity's site</button></p><p class="muted ui" style="margin-top:8px">Opens the charity's own page. 100% of what you give goes to them.</p></div>
+ <div class="card ui"><h3 style="margin-top:0">Vilasi's pledge</h3><p>${esc(D.pledgeRule)}</p><div class="bar"><i style="width:${pct}%"></i></div><p class="muted">$${(c.raised+c.pledged).toLocaleString()} toward a $${c.goal.toLocaleString()} goal${D.preview?' (shows real totals once the cause is live)':''}</p></div>
+ ${full?`<div class="card"><h3>Give your time</h3><p>${esc(c.volunteer)}</p><h3>Pray with us</h3><p>${esc(c.prayer)}</p></div>`:''}
+ ${c.sponsors?.length?`<div class="card ui"><h3 style="margin-top:0">Thank you to our sponsors</h3><p>${c.sponsors.map(esc).join(' · ')}</p></div>`:''}`}
+function render(){const cur=D.causes.find(c=>c.month===D.current)||D.causes[0];let h=D.preview?`<div class="banner">${esc(D.previewNote)}</div>`:'';
+ if(view==='now')h+=cause(cur,true);
+ if(view==='past'){const past=D.causes.filter(c=>c.month<D.current);h+=past.length?past.map(c=>cause(c,false)).join(''):'<div class="card ui"><h2 style="font-family:Georgia">Past causes</h2><p class="muted">Each month\'s cause and what it achieved will be kept here, so you can see the difference you made together.</p></div>'}
+ if(view==='about')h+=`<div class="card"><h2>Why we give</h2><p>Vilasi builds apps for families, faith and everyday life. Every month we choose one cause, tell its story, and give part of what we earn. You're invited to join in, but you never have to.</p></div>
+ <div class="card ui"><h3 style="margin-top:0">How giving works</h3><p>• You give directly on the charity's own website. Vilasi never collects, holds or passes on donations.<br>• Vilasi's own pledge is made by Vilasi, Inc. and is not a donation by you, and it is not tax-deductible for you.<br>• Your own gift's tax status depends on the charity; check their receipt.<br>• This app has no account and collects no personal information.</p><p class="muted" style="margin-top:10px">Questions: robert@vilasi.co · Vilasi, Inc., Southern Pines, NC</p></div>`;
+ $('#m').innerHTML=h;document.querySelectorAll('.give').forEach(b=>b.onclick=()=>{const c=D.causes.find(x=>x.month===b.dataset.c);$('#shName').textContent=c.org;if(c.url){$('#shGo').href=c.url;$('#shGo').classList.remove('hide')}else{$('#shGo').classList.add('hide')}$('#sheet').classList.remove('hide');if(!c.url)$('#sheet .in p').textContent='Giving opens when the partner charity is confirmed. Check back soon!'})}
+$('#shX').onclick=()=>$('#sheet').classList.add('hide');
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script></body></html>

@@ -1,0 +1,10 @@
+{
+  "preview": true,
+  "previewNote": "Preview: Robert hasn't chosen the partner charities yet. The causes below are examples of the kind of story each month will tell.",
+  "pledgeRule": "Vilasi gives 5% of Vilasi Pass revenue to the month's cause.",
+  "current": "2026-12",
+  "causes": [
+    {"month":"2026-12","name":"Example: Clean water for villages in Nepal","org":"Partner charity to be chosen","url":"","story":"In many mountain villages, families walk hours each day for water. A simple gravity-fed system brings clean water to a whole village for years.","impact":[{"amt":10,"what":"water filters for a family for a month"},{"amt":25,"what":"pipe for one household connection"},{"amt":100,"what":"a share of a village water tank"}],"pledged":0,"goal":5000,"raised":0,"volunteer":"Ask your church or club to adopt one village project.","prayer":"Pray for safe water, health and strength for the families of Nepal.","sponsors":[]},
+    {"month":"2027-01","name":"Example: Meals for kids over the holidays","org":"Partner charity to be chosen","url":"","story":"When school is out, many children lose the meals they count on. Weekend food bags fill that gap.","impact":[{"amt":10,"what":"a weekend of meals for one child"},{"amt":25,"what":"a full week of meals"},{"amt":100,"what":"a month of weekend bags"}],"pledged":0,"goal":5000,"raised":0,"volunteer":"Pack food bags at a local food bank.","prayer":"Pray that no child goes hungry this winter.","sponsors":[]}
+  ]
+}
