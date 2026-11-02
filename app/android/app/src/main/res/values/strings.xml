@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bolt Squad</string>
+    <string name="title_activity_main">Bolt Squad</string>
+    <string name="package_name">com.vilasi.boltsquad</string>
+    <string name="custom_url_scheme">com.vilasi.boltsquad</string>
+</resources>

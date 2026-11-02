@@ -1,0 +1,17 @@
+{
+  "appId": "com.vilasi.boltsquad",
+  "appName": "Bolt Squad",
+  "webDir": "www",
+  "server": {
+    "hostname": "boltsquadgames.com",
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "backgroundColor": "#04111e",
+  "ios": { "contentInset": "never", "scrollEnabled": false },
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#071a26", "showSpinner": false },
+    "StatusBar": { "overlaysWebView": true, "style": "DARK" }
+  }
+}
