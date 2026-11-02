@@ -28,7 +28,9 @@ html=html.split('Tell Claude all about it:').join('Tell us all about it:');
 html=html.split('It goes straight to Claude and Dad.').join('It goes straight to the Bolt Squad team.');
 if(/\b(beta|in testing|Claude and Dad)\b/i.test(html.replace(/BETA_IDEAS|'beta-1'/g,'')))throw new Error('beta wording is left in the app build');
 // Store 1.0 keeps photo faces on the device only: no uploading kids' pictures for sharing (COPPA / Google Families).
-swap('</head>','<style>#pubBox{display:none!important}</style></head>');
+// Store apps: no face uploads and no free-text Idea Box (COPPA / Google Families).
+swap('const BETA_IDEAS=true;','const BETA_IDEAS=false;');
+swap('</head>','<style>#pubBox,#openIdea,#endIdea,#idea{display:none!important}</style></head>');
 if(html.includes('At launch'))throw new Error('a price note is left in the app build');
 fs.writeFileSync(path.join(www,'index.html'),html);
 console.log('www/ ready');
