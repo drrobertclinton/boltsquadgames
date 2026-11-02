@@ -46,7 +46,7 @@ Google Play: Game > Casual. Tags: Party, Multiplayer, Cartoon.
 Support URL: https://boltsquadgames.com/support.html
 Marketing URL: https://boltsquadgames.com
 Privacy policy URL: https://boltsquadgames.com/privacy.html
-Support email: support@boltsquadgames.com
+Support email: robert@vilasi.co
 Copyright: 2026 Vilasi, Inc.
 
 ## Review notes (App Store "Notes", Google "App access")
@@ -65,5 +65,5 @@ Apple App Privacy ("nutrition label"):
 - Tracking: No.
 Google Play Data safety:
 - Collects: Other user-generated content (ideas), App activity > other (game progress, leaderboard name/score).
-- Shared with third parties: No. Encrypted in transit: Yes. Users can ask for deletion: Yes (email support@boltsquadgames.com).
+- Shared with third parties: No. Encrypted in transit: Yes. Users can ask for deletion: Yes (email robert@vilasi.co).
 - No ads. No location. No personal info (name, email, phone).
