@@ -31,6 +31,12 @@ if(/\b(beta|in testing|Claude and Dad)\b/i.test(html.replace(/BETA_IDEAS|'beta-1
 // Store apps: no face uploads and no free-text Idea Box (COPPA / Google Families).
 swap('const BETA_IDEAS=true;','const BETA_IDEAS=false;');
 swap('</head>','<style>#pubBox,#openIdea,#endIdea,#idea{display:none!important}</style></head>');
+// Store apps: photo faces never leave the phone, so the cloud backup leaves them out (only coins, points and skins go up).
+swap('const data=JSON.stringify(save);','const data=JSON.stringify(Object.assign({},save,{photos:[],photo:null,photoSel:-1}));');
+swap('Your coins, points, skins and photos are backed up online.','Your coins, points and skins are backed up online. Photo faces stay on this device.');
+swap('Approved pictures can be edited again with new filters and stay approved. ','');
+swap('Only you can see it unless a grown-up approves it.','Pictures stay on this device, and only you can see them.');
+if(html.includes('const data=JSON.stringify(save);'))throw new Error('photos would still go into the cloud backup');
 if(html.includes('At launch'))throw new Error('a price note is left in the app build');
 fs.writeFileSync(path.join(www,'index.html'),html);
 console.log('www/ ready');
