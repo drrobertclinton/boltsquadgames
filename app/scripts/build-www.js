@@ -13,7 +13,8 @@ let css='';
 for(const [fam,w,src] of fonts){const name=path.basename(src);fs.copyFileSync(nm(src),path.join(www,'vendor','fonts',name));
   css+=`@font-face{font-family:'${fam}';font-style:normal;font-weight:${w};font-display:swap;src:url(fonts/${name}) format('woff2')}\n`}
 fs.writeFileSync(path.join(www,'vendor','fonts.css'),css);
-let html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+// BOLT_SRC lets a store build use a saved copy of the game (for example the last released one).
+let html=fs.readFileSync(process.env.BOLT_SRC?path.resolve(process.env.BOLT_SRC):path.join(root,'index.html'),'utf8');
 const swap=(from,to)=>{if(!html.includes(from))throw new Error('index.html no longer contains '+from);html=html.replace(from,to)};
 swap(/href="https:\/\/fonts\.googleapis\.com\/css2[^"]*"/.exec(html)?.[0]||'fonts.googleapis.com','href="vendor/fonts.css"');
 swap('src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"','src="vendor/peerjs.min.js"');
@@ -38,5 +39,9 @@ swap('Approved pictures can be edited again with new filters and stay approved. 
 swap('Only you can see it unless a grown-up approves it.','Pictures stay on this device, and only you can see them.');
 if(html.includes('const data=JSON.stringify(save);'))throw new Error('photos would still go into the cloud backup');
 if(html.includes('At launch'))throw new Error('a price note is left in the app build');
+// Store builds: slow phones draw the game at a lower resolution (see compat.js speed guard).
+swap('dpr=Math.min(2,window.devicePixelRatio||1)','dpr=Math.min(window.__dprCap||2,window.devicePixelRatio||1)');
+// Store builds: rewrite newer JS/CSS so older Android WebViews can run the game (Play rejected 1.0.1 as unresponsive).
+html=require('./compat')(html);
 fs.writeFileSync(path.join(www,'index.html'),html);
 console.log('www/ ready');
