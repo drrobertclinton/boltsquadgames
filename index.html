@@ -384,6 +384,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
             <button class="big ghost" id="openShop">Skins &amp; Shop</button>
             <button class="big ghost" id="openHow">How to Play</button>
           </div>
+          <button class="big ghost" id="shareApp" style="width:100%;margin-top:10px">💬 Text Bolt Squad to a friend</button>
           <button class="big ghost" id="openLb" style="width:100%;margin-top:10px">🏆 Leaderboard</button>
           <button class="big ghost" id="tutBtn">Tutorial · learn in 2 minutes</button>
           <button class="big ghost ideabtn" id="openIdea">💡 Send an idea to Claude (beta)</button>
@@ -419,7 +420,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
   <div class="screen dim" id="lobby" hidden>
     <div class="panel">
       <h2>Your Squad</h2>
-      <div class="codebox"><span class="code" id="lobbyCode">·····</span><button class="big ghost" id="copyCode">Copy</button></div>
+      <div class="codebox"><span class="code" id="lobbyCode">·····</span><button class="big ghost" id="copyCode">Copy</button><button class="big ghost" id="textCode">💬 Text it</button></div>
       <p class="note" id="lobbyStatus"></p>
       <div class="myava"><canvas id="lobbyAva" width="128" height="128" aria-label="Your robot"></canvas><div class="myava-r"><b id="lobbyMyName"></b><button class="big ghost" id="lobbyCustom">Customize robot</button></div></div>
       <div class="diff" id="diffLobby"></div>
@@ -2626,6 +2627,20 @@ $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
 $('#lobbyLeave').onclick=askLeave;
 $('#lobbyStart').onclick=()=>{if(NET.mode==='host'&&NET.lobby.length){hideAll();newGame('online')}};
+// Share: works in Safari, home-screen web apps and the store apps (no browser Share button there).
+// Order: native share sheet, then the phone's Messages app, then copy the link.
+const SHARE_URL='https://boltsquadgames.com/';
+function shareOut(text){
+  const full=text+' '+SHARE_URL;
+  const sms=()=>{location.href='sms:?&body='+encodeURIComponent(full)};
+  const cap=window.Capacitor&&window.Capacitor.Plugins&&window.Capacitor.Plugins.Share;
+  if(cap){cap.share({title:'Bolt Squad',text,url:SHARE_URL}).catch(e=>{if(!/cancel/i.test(e&&e.message||''))sms()});return}
+  if(navigator.share){navigator.share({title:'Bolt Squad',text,url:SHARE_URL}).catch(e=>{if(!e||e.name!=='AbortError')sms()});return}
+  if(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)||window.Capacitor){sms();return}
+  try{navigator.clipboard.writeText(full).then(()=>toast('Link copied. Paste it in a text.'),()=>toast(full,5))}catch(e){toast(full,5)}
+}
+$('#shareApp').onclick=()=>shareOut('Play Bolt Squad with me! A deep-sea robot mystery: fix the base and catch the Glitch. Free, no download:');
+$('#textCode').onclick=()=>{const c=NET.code||'';shareOut('Join my Bolt Squad! Open the game, tap Play with Friends, then Join and type '+c+'.')};
 $('#copyCode').onclick=()=>{const c=NET.code||'';try{navigator.clipboard.writeText(c).then(()=>toast('Code copied: '+c),()=>toast('Squad code: '+c))}catch(e){toast('Squad code: '+c)}};
 function onlineError(msg){hideAll();$('#hud').hidden=true;$('#online').hidden=false;$('#onErr').textContent=msg}
 function showLobby(msg){hideAll();$('#hud').hidden=true;$('#lobby').hidden=false;$('#lobbyStatus').textContent=msg||'';$('#lobbyCode').textContent='·····';$('#plist').innerHTML=''}
