@@ -974,7 +974,7 @@ function hostData(conn,m){
     Object.assign(p,{name,color:freeColor(m.color,p)},avatarFrom(m));sendLobby();return;
   }
   const ent=conn.ent;if(!ent||!G||!NET.inGame)return;
-  if(m.t==='pos'){if((G.state==='play'||G.state==='task')&&isFinite(m.x)&&isFinite(m.y)){ent.x=Math.max(40,Math.min(1760,+m.x));ent.y=Math.max(30,Math.min(1170,+m.y));ent.face=m.f<0?-1:1;ent.moving=!!m.m}return}
+  if(m.t==='pos'){if((G.state==='play'||G.state==='task')&&isFinite(m.x)&&isFinite(m.y)){ent.x=Math.max(40,Math.min(1760,+m.x));ent.y=Math.max(30,Math.min(1380,+m.y));ent.face=m.f<0?-1:1;ent.moving=!!m.m}return}
   hostAction(ent,m.t,m);
 }
 function hostDrop(conn){
@@ -2012,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794637270';
+const BUILD='1794637724';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
