@@ -67,3 +67,32 @@ Google Play Data safety:
 - Collects: Other user-generated content (ideas), App activity > other (game progress, leaderboard name/score).
 - Shared with third parties: No. Encrypted in transit: Yes. Users can ask for deletion: Yes (email robert@vilasi.co).
 - No ads. No location. No personal info (name, email, phone).
+
+## Version 1.1: photo passes (paid photo faces)
+
+What changes: a player can share their robot's face picture with other players by using a **photo pass**. A grown-up buys passes in the app (Apple / Google in-app purchase). Every shared picture still waits on boltsquadgames.com/review.html until Robert approves it; a denied picture gives the pass back. Private pictures that stay on the phone are still free. Code: `app/scripts/photo-pass.js` (inlined by `build-www.js`), plugin `capacitor-plugin-cdv-purchase`.
+
+### Products (create in BOTH stores with these exact IDs, type Consumable)
+| Product ID | Name | Price |
+|---|---|---|
+| com.vilasi.boltsquad.photo1 | 1 Photo Pass | $2.99 |
+| com.vilasi.boltsquad.photo5 | 5 Photo Passes | $9.99 |
+| com.vilasi.boltsquad.photo10 | 10 Photo Passes | $14.99 |
+Description (all three): "Share a robot face picture with other players. Every picture is checked by our team first. A denied picture gives the pass back."
+Apple review screenshot for each product: `store/iap-review-screenshot-grownup-gate.png`.
+
+### Robert only (money and legal)
+1. Apple: App Store Connect > Business > **Paid Apps agreement**: accept, add bank account and US tax form. In-app purchases do not work until it is Active.
+2. Google: Play Console > Setup > **Payments profile**: link a merchant account (bank + tax). Needed before in-app products can be created.
+
+### Store answers that change in 1.1
+- Apple age rating: User-generated content = **Yes** (shared pictures are approved before anyone sees them, reportable, and removable). In-app purchases = Yes. Expected rating stays 9+.
+- Apple App Privacy: add **Photos or Videos** (App Functionality, not linked to identity, not used for tracking) and **Purchase History** (App Functionality, not linked, not tracking).
+- Apple review notes: "Sharing a face picture needs a photo pass. A grown-up gate (multiplication question + parent/guardian consent) comes before every purchase. Every shared picture is reviewed by our team before other players see it (Guideline 1.2: pre-moderation, in-game report flag that hides a picture at once, take-down from our review page, contact robert@vilasi.co). To test: Your Robot > Choose picture > Get a photo pass."
+- Google IARC questionnaire: Digital purchases = **Yes**; users can share user-generated content = Yes (pre-moderated pictures only, no text). Rating may move up one step.
+- Google Data safety: Photos = **Collected**, optional, App functionality, not shared, can be deleted on request. Purchase history = Collected, App functionality. Encrypted in transit = Yes.
+- Google Families: the app has no ads, purchases sit behind a grown-up gate, and pictures of people are denied. Keep target ages as they are.
+- Listing text: remove "Your robot's face picture stays on your device. It is never uploaded or shown to other players." and use: "• Show off a face picture: with a photo pass, your robot can wear a picture of your pet or favorite toy. A grown-up on our team checks every picture first." Both stores show "In-app purchases" automatically once products exist.
+
+### Kids and privacy
+A photo of a child is personal information under COPPA. The app avoids collecting it by asking for pets, toys and drawings and by denying any picture of a person. The parent's store purchase behind the grown-up gate, plus the consent box, is the parent's OK for the upload. Deletion requests: robert@vilasi.co. This is a practical setup, not legal advice.

@@ -2,7 +2,7 @@
 
 The store apps wrap the same game as boltsquadgames.com. `npm run sync` copies `../index.html` into `www/`, swaps the CDN files for local copies so the app works offline, removes the web-only "beta" and "at launch" price notes, and copies everything into the Android and iOS projects.
 
-- App ID: `com.vilasi.boltsquad`, name "Bolt Squad", version 1.0 (build 1)
+- App ID: `com.vilasi.boltsquad`, name "Bolt Squad", version 1.1.0 (Android versionCode 7, iOS build 5). 1.1 adds paid photo passes: see store/LISTING.md "Version 1.1"
 - Capacitor 8. Android targets SDK 36. iOS 15+, iPhone and iPad.
 - The app serves itself as `boltsquadgames.com` (see `capacitor.config.json`), so cloud saves, the leaderboard, face pictures and the Idea Box work exactly like the website. That also means **a simulator or test phone writes to the live leaderboard**: hide any test players afterwards.
 - Store text, age rating and privacy answers: `store/LISTING.md`. Screenshots and icons: `store/`.
