@@ -909,7 +909,7 @@ function drawBot(c,x,y,col,hat,face,state,t,walk,visor,photo){
 
 /* ================= canvas & input ================= */
 const cv=$('#cv'),ctx=cv.getContext('2d');let dpr=1;
-function resize(){dpr=Math.min(2,window.devicePixelRatio||1);cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr}
+function resize(){dpr=Math.min(2,window.devicePixelRatio||1);const w=Math.round(cv.clientWidth*dpr),h=Math.round(cv.clientHeight*dpr);if(w&&h&&(cv.width!==w||cv.height!==h)){cv.width=w;cv.height=h}}
 window.addEventListener('resize',resize);resize();
 try{document.fonts.ready.then(()=>{decorCv=null})}catch(e){}
 const keys={};let joy=null;
@@ -2012,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794615242';
+const BUILD='1794637270';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2995,6 +2995,7 @@ let lastT=performance.now();
 function frame(now){
   const dt=Math.min(0.05,(now-lastT)/1000);lastT=now;const t=now/1000;
   try{
+    resize();
     if(G){update(dt);if(G&&G.tut&&!G.tut.done)tutTick(dt);drawWorld(t);if(G){G.hudT-=dt;if(G.hudT<=0&&G.state!=='end'){G.hudT=0.12;hud()}}}
     else{ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#04111e';ctx.fillRect(0,0,cv.clientWidth,cv.clientHeight)}
     if(!$('#menu').hidden)drawPreview(t);
