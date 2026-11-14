@@ -135,6 +135,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 #tasklist b{font-family:var(--display);font-weight:400;font-size:11px;color:var(--kelp);letter-spacing:.05em;display:block;margin-bottom:2px}
 #tasklist .d{color:var(--muted);text-decoration:line-through}
 #tasklist .r{color:var(--muted)}
+#tasklist.tap{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#tasklist.tap b{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#tasklist .tln{color:#fff}
+#tasklist .tla{margin-left:auto;padding-left:8px;color:var(--sun);font-size:13px;line-height:1}
+#tasklist.min .tlx{display:none}
 .actions{position:absolute;right:max(14px,calc(env(safe-area-inset-right,0px) + 10px));bottom:max(16px,calc(env(safe-area-inset-bottom,0px) + 10px));display:grid;grid-template-columns:repeat(2,72px);gap:10px}
 .act{width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.25);background:rgba(17,52,80,.9);font-family:var(--display);font-size:12px;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;line-height:1.1;box-shadow:0 4px 0 rgba(0,0,0,.4)}
 .act:disabled{opacity:.35;cursor:default}
@@ -173,6 +178,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--sun);outline-of
 html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
 .maphead button{min-width:44px;min-height:44px;font-size:20px!important}
 @media (max-height:520px){#miniMap{width:min(20vw,128px)}}
+@media (max-width:700px) and (orientation:portrait){#miniMap{width:min(29vw,118px)}}
 .mapbox::after{content:'Tap the map for the small map. Tap HIDE MAP to hide all maps.';display:block;text-align:center;font-size:12px;color:#8fb6c7}
 .mapbtn{width:auto!important;padding:0 10px!important;font:400 12px Bungee,sans-serif!important;letter-spacing:.04em}
 .mapui{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(2,12,22,.6);z-index:90;padding:max(10px,env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
@@ -2006,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1793060962';
+const BUILD='1794615242';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2083,10 +2089,13 @@ function hud(){
   const bn=$('#banner');if(G.breach){bn.hidden=false;bn.textContent=`HULL BREACH ${Math.ceil(G.breach.t)}s · SUB DOCK`}else if(G.lights){bn.hidden=false;bn.textContent='LIGHTS OUT · PANEL IN CENTRAL HUB'}else if(G.comms){bn.hidden=false;bn.textContent='COMMS DOWN · FIX IN SONAR COMMS'}else bn.hidden=true;
   let html;
   if(me.glitch){const crew=G.ents.filter(e=>e.alive&&e!==me&&!isMate(e)).length;html=`<b>YOUR MISSION</b>Freeze bots until only 1 crew bot is left.<br><span class="r">Awake crew: ${crew}</span>`}
-  else html='<b>'+(me.alive?'YOUR REPAIRS':'GHOST REPAIRS')+'</b>'+me.tasks.map(id=>{const s=STATIONS[id];return`<div class="${me.done.has(id)?'d':''}">${s.label}${s.vis?' 👀':''} <span class="r">· ${roomName(s.room)}</span></div>`}).join('');
+  else{const nx=me.tasks.find(id=>!me.done.has(id)),dn=me.tasks.filter(id=>me.done.has(id)).length;html='<b>'+(me.alive?'YOUR REPAIRS':'GHOST REPAIRS')+'<span class="tln">'+dn+'/'+me.tasks.length+'</span><span class="tla">'+(TL_MIN?'▾':'▴')+'</span></b>'+me.tasks.map(id=>{const s=STATIONS[id];return`<div class="${me.done.has(id)?'d':''}${id===nx?'':' tlx'}">${s.label}${s.vis?' 👀':''} <span class="r">· ${roomName(s.room)}</span></div>`}).join('')}
+  {const tl=$('#tasklist'),tap=!me.glitch;if(tl.classList.contains('tap')!==tap)tl.classList.toggle('tap',tap);const mn=tap&&TL_MIN;if(tl.classList.contains('min')!==mn)tl.classList.toggle('min',mn)}
   if(G.online&&NET.code)html+=`<span class="r">Squad ${esc(NET.code)}</span>`;
   if(html!==G.tlKey){G.tlKey=html;$('#tasklist').innerHTML=html}
 }
+let TL_MIN=innerWidth<=700;try{const v=localStorage.getItem('bs_tlmin');if(v==='1')TL_MIN=true;else if(v==='0')TL_MIN=false}catch(e){}
+$('#tasklist').onclick=()=>{if(!G||!G.me||G.me.glitch)return;TL_MIN=!TL_MIN;try{localStorage.setItem('bs_tlmin',TL_MIN?'1':'0')}catch(e){}G.tlKey='';hud()};
 let toastTimer=null;
 function toast(msg,sec=2.3){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.hidden=true,sec*1000)}
 $('#useBtn').onclick=doUse;$('#repBtn').onclick=doReport;$('#scanBtn').onclick=doScanZap;$('#sabBtn').onclick=doSabotage;$('#trkBtn').onclick=doTrack;$('#invBtn').onclick=doInvis;
