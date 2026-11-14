@@ -43,7 +43,7 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   <div class="bar"><h1>Bolt Squad Review</h1><div><span id="who"></span> <button id="signout" hidden>Sign out</button></div></div>
   <section id="login"><h2>Sign in</h2><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input id="email" type="email" value="robert@vilasi.co" aria-label="Email" style="font:inherit;padding:9px 12px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--fg);min-width:240px"><button id="sendLink" class="ok">Email me a sign-in link</button><span class="empty">or</span><button id="signin">Sign in with Google</button></div><p class="empty" id="linkMsg" style="margin:8px 0 0"></p></section>
   <p id="msg" class="empty">Only Robert's accounts can use this page.</p>
-  <section id="secQuick" hidden><h2 id="qTitle">Picture to check</h2><div id="quick"></div></section>
+  <section id="secQuick" hidden><h2 id="qTitle">Picture to check</h2><div id="quick"></div><p class="empty" style="text-align:center;margin:14px 0 0">Phone alerts: install the free <b>ntfy</b> app, tap +, subscribe to <b>boltsquad-approve-414c4d47b4</b>. <button id="qTest">Send a test alert</button></p></section>
   <section id="secReported" hidden><h2>Reported pictures</h2><div class="grid" id="reported"></div></section>
   <section id="secPending" hidden><h2>Pictures waiting for approval</h2><div class="grid" id="pending"></div></section>
   <section id="secApproved" hidden><h2>Approved pictures</h2><div class="grid" id="approved"></div></section>
@@ -88,6 +88,7 @@ function card(d,mode){
   return el;
 }
 // One big picture with big Approve / Deny buttons. Phone alerts open review.html?face=<id>; after each tap the next waiting picture shows.
+document.addEventListener('click',e=>{if(e.target.id!=='qTest')return;e.target.disabled=true;fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic:'boltsquad-approve-414c4d47b4',title:'Bolt Squad alerts work',message:'Tap a note like this to approve or deny a picture.',click:location.origin+location.pathname,tags:['robot']})}).then(r=>{e.target.textContent=r.ok?'Sent! Check your phone':'Could not send';}).catch(()=>{e.target.textContent='Could not send'})});
 function quick(rep,pen){
   const want=new URLSearchParams(location.search).get('face'),q=$('#quick');
   const list=[...rep,...pen.slice().sort((a,b)=>(a.data().at?.seconds||0)-(b.data().at?.seconds||0))];
