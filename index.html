@@ -559,7 +559,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
         <li>In meetings, tap the <b>quick chat</b> buttons to talk. Pick a robot first for messages like "I think it's ___".</li>
       </ul>
       <h3>CONTROLS</h3>
-      <p>Keyboard: WASD or arrows to move, E use, R report, Q scan or zap, F sabotage.<br>Phone: drag anywhere on the screen to move, tap the round buttons.</p>
+      <p>Mac or PC: WASD or arrow keys to move (or click and drag with the mouse or trackpad), E use, R report, Q scan or zap, F sabotage.<br>Phone: drag anywhere on the screen to move, tap the round buttons.</p>
     </div>
   </div>
 
@@ -921,7 +921,7 @@ window.addEventListener('keydown',e=>{
   if(k==='e')doUse(); if(k==='r')doReport(); if(k==='q')doScanZap(); if(k==='f')doSabotage();
 });
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
-cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,x:e.clientX,y:e.clientY};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
 cv.addEventListener('pointermove',e=>{if(joy&&e.pointerId===joy.id){joy.x=e.clientX;joy.y=e.clientY}});
 const endJoy=e=>{if(joy&&e.pointerId===joy.id)joy=null};
 cv.addEventListener('pointerup',endJoy);cv.addEventListener('pointercancel',endJoy);
@@ -2012,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794637724';
+const BUILD='1794670320';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
