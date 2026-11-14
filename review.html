@@ -63,7 +63,7 @@ auth.onAuthStateChanged(u=>{
   const ok=u&&ADMINS.includes((u.email||'').toLowerCase());$('#login').hidden=!!u;
   $('#signin').hidden=!!u;$('#signout').hidden=!u;$('#who').textContent=u?u.email:'';
   ['#secReported','#secPending','#secApproved','#secLb','#secIdeas'].forEach(s=>$(s).hidden=!ok);
-  $('#msg').textContent=!u?"Only Robert's accounts can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old.':'This account cannot review pictures.';
+  $('#msg').textContent=!u?"Only Robert's accounts can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old. A denied paid picture gives the player their photo pass back.':'This account cannot review pictures.';
   if(ok)load();
 });
 async function setStatus(id,ver,status,clearReports){
@@ -74,7 +74,7 @@ async function setStatus(id,ver,status,clearReports){
 }
 function card(d,mode){
   const f=d.data(),el=document.createElement('div');el.className='card';
-  el.innerHTML=`<img alt="Picture from ${esc(f.name)}" src="${esc(f.img)}"><div><b>${esc(f.name)}</b><div class="meta">${when(f.at)}${f.reports?` · <span class="flag">${f.reports} report${f.reports>1?'s':''}</span>`:''}</div></div><div class="row"></div>`;
+  el.innerHTML=`<img alt="Picture from ${esc(f.name)}" src="${esc(f.img)}"><div><b>${esc(f.name)}</b><div class="meta">${f.paid?`<span style="color:var(--kelp);font-weight:700" title="${esc(f.paid)}">Paid photo pass</span> · `:'No photo pass (website) · '}${when(f.at)}${f.reports?` · <span class="flag">${f.reports} report${f.reports>1?'s':''}</span>`:''}</div></div><div class="row"></div>`;
   const row=el.querySelector('.row'),btn=(t,c,fn)=>{const b=document.createElement('button');b.textContent=t;if(c)b.className=c;b.onclick=async()=>{b.disabled=true;try{await fn()}catch(e){alert(e.message)}};row.appendChild(b)};
   if(mode!=='approved')btn('Approve','ok',()=>setStatus(d.id,f.ver,'approved',true));
   if(mode==='reported')btn('Keep showing','ok',()=>setStatus(d.id,f.ver,'approved',true));
