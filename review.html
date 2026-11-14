@@ -31,6 +31,11 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
 .empty{color:var(--muted)}
 #who{color:var(--muted);font-size:13px}
 :focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+#secQuick{border:2px solid var(--sun)}
+#secQuick .qimg{width:min(100%,420px);aspect-ratio:1;object-fit:cover;border-radius:16px;background:#000;display:block;margin:0 auto}
+#secQuick .qbtns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+#secQuick .qbtns button{font-size:22px;padding:22px 10px;border-radius:16px}
+#secQuick .qmeta{text-align:center;margin:10px 0 0}
 </style>
 </head>
 <body>
@@ -38,6 +43,7 @@ section{background:var(--panel);border:1px solid var(--line);border-radius:14px;
   <div class="bar"><h1>Bolt Squad Review</h1><div><span id="who"></span> <button id="signout" hidden>Sign out</button></div></div>
   <section id="login"><h2>Sign in</h2><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><input id="email" type="email" value="robert@vilasi.co" aria-label="Email" style="font:inherit;padding:9px 12px;border-radius:10px;border:2px solid var(--line);background:#081a2a;color:var(--fg);min-width:240px"><button id="sendLink" class="ok">Email me a sign-in link</button><span class="empty">or</span><button id="signin">Sign in with Google</button></div><p class="empty" id="linkMsg" style="margin:8px 0 0"></p></section>
   <p id="msg" class="empty">Only Robert's accounts can use this page.</p>
+  <section id="secQuick" hidden><h2 id="qTitle">Picture to check</h2><div id="quick"></div></section>
   <section id="secReported" hidden><h2>Reported pictures</h2><div class="grid" id="reported"></div></section>
   <section id="secPending" hidden><h2>Pictures waiting for approval</h2><div class="grid" id="pending"></div></section>
   <section id="secApproved" hidden><h2>Approved pictures</h2><div class="grid" id="approved"></div></section>
@@ -62,7 +68,7 @@ function lbKeys(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New
 auth.onAuthStateChanged(u=>{
   const ok=u&&ADMINS.includes((u.email||'').toLowerCase());$('#login').hidden=!!u;
   $('#signin').hidden=!!u;$('#signout').hidden=!u;$('#who').textContent=u?u.email:'';
-  ['#secReported','#secPending','#secApproved','#secLb','#secIdeas'].forEach(s=>$(s).hidden=!ok);
+  ['#secQuick','#secReported','#secPending','#secApproved','#secLb','#secIdeas'].forEach(s=>$(s).hidden=!ok);
   $('#msg').textContent=!u?"Only Robert's accounts can use this page.":ok?'Approve a picture only if it is safe for kids. Deny anything with a real child\'s face, words, or anything you would not show a 10-year-old. A denied paid picture gives the player their photo pass back.':'This account cannot review pictures.';
   if(ok)load();
 });
@@ -81,12 +87,25 @@ function card(d,mode){
   btn(mode==='approved'?'Take down':'Deny','no',()=>setStatus(d.id,f.ver,'denied',false));
   return el;
 }
+// One big picture with big Approve / Deny buttons. Phone alerts open review.html?face=<id>; after each tap the next waiting picture shows.
+function quick(rep,pen){
+  const want=new URLSearchParams(location.search).get('face'),q=$('#quick');
+  const list=[...rep,...pen.slice().sort((a,b)=>(a.data().at?.seconds||0)-(b.data().at?.seconds||0))];
+  const d=list.find(x=>x.id===want)||list[0];
+  if(!d){q.innerHTML='<p class="empty" style="text-align:center;font-size:18px">All caught up. No pictures waiting.</p>';$('#qTitle').textContent='Picture to check';return}
+  const f=d.data(),isRep=f.reports>0;
+  $('#qTitle').textContent=(isRep?'Reported picture':'Picture to check')+(list.length>1?' (1 of '+list.length+')':'');
+  q.innerHTML=`<img class="qimg" alt="Picture from ${esc(f.name)}" src="${esc(f.img)}"><p class="qmeta"><b style="font-size:18px">${esc(f.name)}</b><br><span class="empty">${f.paid?'<span style="color:var(--kelp);font-weight:700">Paid photo pass</span> · ':''}${when(f.at)}${isRep?` · <span class="flag">${f.reports} report${f.reports>1?'s':''}</span>`:''}</span></p><div class="qbtns"><button class="ok" id="qYes">✓ Approve</button><button class="no" id="qNo">✕ Deny</button></div>`;
+  const go=async st=>{$('#qYes').disabled=$('#qNo').disabled=true;try{if(want)history.replaceState(null,'',location.pathname);await setStatus(d.id,f.ver,st,st==='approved')}catch(e){alert(e.message)}};
+  $('#qYes').onclick=()=>go('approved');$('#qNo').onclick=()=>go('denied');
+}
 async function load(){
   const all=await db.collection('faces').get();
   const rep=[],pen=[],app=[];
   all.forEach(d=>{const f=d.data();if(f.status==='denied'||d.id.startsWith('zztest'))return;if(f.reports>0)rep.push(d);else if(f.status==='pending')pen.push(d);else if(f.status==='approved')app.push(d)});
   const fill=(box,list,mode,emptyText)=>{box.innerHTML='';list.sort((a,b)=>(b.data().at?.seconds||0)-(a.data().at?.seconds||0)).forEach(d=>box.appendChild(card(d,mode)));if(!list.length)box.innerHTML=`<p class="empty">${emptyText}</p>`};
-  fill($('#reported'),rep,'reported','Nothing reported.');fill($('#pending'),pen,'pending','No pictures waiting.');fill($('#approved'),app,'approved','None approved yet.');
+  fill($('#reported'),rep,'reported','Nothing reported.');
+  quick(rep,pen);fill($('#pending'),pen,'pending','No pictures waiting.');fill($('#approved'),app,'approved','None approved yet.');
   const lb=await db.collection('lb_all').orderBy('coins','desc').limit(200).get(),la=$('#lbAdmin');la.innerHTML='';
   lb.forEach(d=>{const f=d.data(),el=document.createElement('div');el.className='idea';el.innerHTML=`<div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><span><b>${esc(f.name)}</b> · ${(f.coins||0).toLocaleString()} coins</span><button class="no">Remove</button></div><div class="meta">Last game ${when(f.at)} · id ${esc(d.id)}</div>`;
     el.querySelector('button').onclick=async e=>{e.target.disabled=true;const b=db.batch();lbKeys().forEach(k=>b.delete(db.collection(k).doc(d.id)));await b.commit();el.remove()};la.appendChild(el)});

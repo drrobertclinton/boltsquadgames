@@ -2745,6 +2745,12 @@ function notify(subject,text,cc){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
   try{fetch('https://formsubmit.co/ajax/'+NOTIFY_TO,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({_subject:subject,message:text,_template:'box',_captcha:'false',...(cc?{_cc:cc}:{})})}).catch(()=>{})}catch(e){}
 }
+// Phone alert to Robert through the free ntfy app (subscribe to this topic). Tapping it opens the one-picture approve page.
+const PUSH_TOPIC='boltsquad-approve-414c4d47b4';
+function pushRobert(title,msg,click){
+  if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;
+  try{fetch('https://ntfy.sh/',{method:'POST',body:JSON.stringify({topic:PUSH_TOPIC,title,message:msg,click,priority:4,tags:['robot']})}).catch(()=>{})}catch(e){}
+}
 const FACES={};
 function facePhoto(e){
   if(!e||!e.fp)return null;if(String(e.fp).split('.')[0]===save.pid||String(e.fp).startsWith(save.pid+'-'))return myPhoto();
@@ -2757,7 +2763,7 @@ function facePhoto(e){
 async function reportFace(e){
   if(!e||!e.fp)return;const f=FACES[e.fp];if(f){f.state='hidden';f.img=null}
   try{await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{transform:{document:`projects/bolt-squad/databases/(default)/documents/faces/${String(e.fp).split('.')[0]}`,fieldTransforms:[{fieldPath:'reports',increment:{integerValue:'1'}}]}}]})})}catch(err){}
-  toast('Thanks for telling us. That picture is hidden until a grown-up checks it.',3);notify('Bolt Squad: a picture was reported',`Someone reported ${e.name}'s photo face. It is hidden until you check it.\n\nReview it here: https://boltsquadgames.com/review.html`);
+  toast('Thanks for telling us. That picture is hidden until a grown-up checks it.',3);notify('Bolt Squad: a picture was reported',`Someone reported ${e.name}'s photo face. It is hidden until you check it.\n\nReview it here: https://boltsquadgames.com/review.html`);pushRobert('A picture was reported',`Someone reported ${e.name}'s photo face. It is hidden until you check it.`,'https://boltsquadgames.com/review.html?face='+String(e.fp).split('.')[0]);
 }
 document.addEventListener('click',ev=>{const r=ev.target.closest&&ev.target.closest('.repflag');if(!r||!G)return;ev.preventDefault();ev.stopPropagation();reportFace(G.ents[+r.dataset.r]);renderVotes(G.voteResult||null)},true);
 async function refreshPub(){
@@ -2773,7 +2779,7 @@ $('#pubSend').onclick=async()=>{
   if(!save.photo)return;const ver=Date.now();$('#pubSend').disabled=true;$('#pubStatus').textContent='Sending...';
   const fields={img:{stringValue:save.photo},name:{stringValue:cleanName(save.name).slice(0,15)},status:{stringValue:'pending'},reports:{integerValue:'0'},ver:{integerValue:String(ver)}};
   try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/faces/${curDoc()}`,fields},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
-    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;{const p=curPhoto();if(p){p.pub=true;p.ver=ver}}persist();sendAvatar();refreshPub();notify('Bolt Squad: new picture to approve',`${cleanName(save.name)} sent a photo face for approval.\n\nReview it here: https://boltsquadgames.com/review.html`)}
+    if(!r.ok)throw 0;save.facePub=true;save.faceVer=ver;{const p=curPhoto();if(p){p.pub=true;p.ver=ver}}persist();sendAvatar();refreshPub();notify('Bolt Squad: new picture to approve',`${cleanName(save.name)} sent a photo face for approval.\n\nApprove or deny it here: https://boltsquadgames.com/review.html?face=${curDoc()}`);pushRobert('New picture to approve',`${cleanName(save.name)} sent a photo face. Tap to approve or deny.`,'https://boltsquadgames.com/review.html?face='+curDoc())}
   catch(e){$('#pubStatus').textContent='Could not send. Wait a minute and try again.'}
   $('#pubSend').disabled=false;
 };
