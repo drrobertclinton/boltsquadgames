@@ -2012,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794670320';
+const BUILD='1794670574';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2570,6 +2570,7 @@ let cloudT=null,cloudBusy=false;
 function cloudSave(soon){clearTimeout(cloudT);cloudT=setTimeout(cloudPush,soon?1500:8000)}
 async function cloudPush(){
   if(!cloudReady||cloudBusy||!/(^|\.)boltsquadgames\.com$/.test(location.hostname))return;cloudBusy=true;
+  try{const cur=await cloudGet(save.saveCode);if(cur&&cur.mergedTo&&cur.mergedTo!==save.saveCode){const m=await cloudGet(cur.mergedTo);if(m&&!m.missing&&!m.mergedTo){cloudBusy=false;adoptSave(m,cur.mergedTo,'This save was combined into another one. Switching over.');return}}}catch(e){cloudBusy=false;return}
   const data=JSON.stringify(save);
   try{const r=await fetch(FS+':commit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({writes:[{update:{name:`projects/bolt-squad/databases/(default)/documents/saves/${save.saveCode}`,fields:{data:{stringValue:data}}},updateTransforms:[{fieldPath:'at',setToServerValue:'REQUEST_TIME'}]}]})});
     if(r.ok){save.cloudAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(save))}catch(e){}}}catch(e){}
@@ -2625,6 +2626,7 @@ $('#mergeGo').onclick=async()=>{
     if(b.missing){toast('No save found with that code. Open the game on the other phone first, then try again.',3);return}
     if(b.mergedTo){toast('That save was already combined.',3);return}
     if(b.pid===save.pid){toast('Those are already the same save.');return}
+    {const mine=[save.pid,...(save.mergedPids||[])],theirs=[b.pid,...(b.mergedPids||[])];if(!b.pid||theirs.some(p=>mine.includes(p))){toast('That save was already combined. Coins can only be combined once.',3);return}}
     if(!confirm('Combine '+cleanName(b.name||'that player')+' ('+(b.coins||0)+' coins) into this save?'))return;
     const m=mergeInto(save,b);m.saveCode=save.saveCode;
     await cloudPut(save.saveCode,m);await cloudPut(code,{mergedTo:save.saveCode,savedAt:Date.now()});
