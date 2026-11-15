@@ -429,6 +429,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <div class="codebox"><span class="code" id="lobbyCode">·····</span><button class="big ghost" id="copyCode">Copy</button><button class="big ghost" id="textCode">💬 Text it</button></div>
       <p class="note" id="lobbyStatus"></p>
       <div class="myava"><canvas id="lobbyAva" width="128" height="128" aria-label="Your robot"></canvas><div class="myava-r"><b id="lobbyMyName"></b><button class="big ghost" id="lobbyCustom">Customize robot</button></div></div>
+      <div class="diff" id="botLobby"></div>
       <div class="diff" id="diffLobby"></div>
       <div class="diff zapset" id="zapLobby"></div>
       <div class="diff" id="glLobby"></div>
@@ -555,7 +556,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
       <ul>
         <li>Tap <b>Play with Friends</b>, then <b>Start a Squad</b>. You get a 5-letter code.</li>
         <li>Friends open boltsquadgames.com, tap <b>Play with Friends</b>, type your code and tap <b>Join</b>.</li>
-        <li>When everyone's in, tap <b>Start Game</b>. Robots fill any empty spots.</li>
+        <li>When everyone's in, tap <b>Start Game</b>. Robots fill any empty spots. Want only friends? The squad leader sets <b>Robots</b> to <b>Friends only</b> (needs at least 3 players, or 5 with 2 Glitches).</li>
         <li>In meetings, tap the <b>quick chat</b> buttons to talk. Pick a robot first for messages like "I think it's ___".</li>
       </ul>
       <h3>CONTROLS</h3>
@@ -980,13 +981,15 @@ function hostData(conn,m){
 function hostDrop(conn){
   const i=NET.lobby.findIndex(p=>p.conn===conn);if(i<0)return;
   const p=NET.lobby.splice(i,1)[0];
-  if(G&&NET.inGame&&conn.ent){const e=conn.ent;e.human=false;e.conn=null;e.path=[];e.wait=0;broadcast({t:'toast',msg:`${e.name} left. A robot took over.`})}
+  if(G&&NET.inGame&&conn.ent){const e=conn.ent;e.human=false;e.conn=null;e.path=[];e.wait=0;
+    if(G.noBots){if(e.alive){e.alive=false;e.ejected=true;e.left=true;e.bx=e.x;e.by=e.y;e.tasks=e.tasks.filter(id=>e.done.has(id))}broadcast({t:'toast',msg:`${e.name} left the game.`});checkWin()}
+    else broadcast({t:'toast',msg:`${e.name} left. A robot took over.`})}
   sendLobby();
 }
 function sendLobby(){
   const list=NET.lobby.map(p=>({name:p.name,color:p.color,hat:p.hat,visor:p.visor,fp:p.fp||''}));
   NET.list=list;
-  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec(),gl:glCount(),eng:engCount(),trk:trkOn(),vis:visTasksOn()})}catch(e){}}});
+  NET.lobby.forEach(p=>{if(p.conn&&p.conn.open){try{p.conn.send({t:'lobby',code:NET.code,players:list,diff:save.diff,zap:zapSec(),gl:glCount(),eng:engCount(),trk:trkOn(),vis:visTasksOn(),bots:botsOn()})}catch(e){}}});
   if(!NET.inGame)renderLobby();
 }
 function joinSquad(code){
@@ -1017,7 +1020,8 @@ function newGame(mode,role){
   const names=shuffle(NAMES.filter(n=>!humans.some(h=>h.name===n)));
   const ents=[];
   humans.forEach((h,i)=>ents.push({id:i,name:h.name,color:h.color,hat:h.hat,visor:h.visor,fp:h.fp||'',human:true,local:!!h.local,conn:h.conn||null}));
-  while(ents.length<MAXP){const i=ents.length;ents.push({id:i,name:names.pop(),color:cols.pop()||pick(COLS()),hat:mkHat(pick(['none','antenna','antenna','cap','headphones','propeller','fin','halo','hardhat','chef','police','fire','army','cube','football','racing','grad']),'',Math.random()<0.45?pick(OUTFIT_IDS):''),human:false,local:false,conn:null})}
+  const fill=mode!=='online'||botsOn();
+  while(fill&&ents.length<MAXP){const i=ents.length;ents.push({id:i,name:names.pop(),color:cols.pop()||pick(COLS()),hat:mkHat(pick(['none','antenna','antenna','cap','headphones','propeller','fin','halo','hardhat','chef','police','fire','army','cube','football','racing','grad']),'',Math.random()<0.45?pick(OUTFIT_IDS):''),human:false,local:false,conn:null})}
   ents.forEach(e=>{Object.assign(e,{alive:true,glitch:false,tasks:[],done:new Set(),path:[],wait:0,face:1,moving:false,sus:{},task:null,goal:null,cleared:false,bodyFound:false,ejected:false,spot:0,scanCd:0,lastZapT:-999,bx:0,by:0,lastChat:0,trust:rand(0.15,1),scansLeft:2});if(e.conn)e.conn.ent=e});
   const hum=ents.filter(e=>e.human);
   let g;
@@ -1036,7 +1040,7 @@ function newGame(mode,role){
   const visOn=mode!=='tutorial'&&visTasksOn();
   ents.forEach(e=>{if(!e.glitch){e.tasks=shuffle(STATIONS.filter(s=>!s.vis).map(s=>s.id)).slice(0,e.human?DIFF[save.diff].tasks:4);if(visOn&&Math.random()<0.5)e.tasks.splice(Math.floor(Math.random()*(e.tasks.length+1)),0,pick(VIS_IDS))}});
   placeAtTable(ents);
-  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,sabLeft:2,comms:null,visOn,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',mode,role,resolving:false};
+  G={ents,me:ents[0],glitch:g,diff:mode==='tutorial'?'normal':save.diff,t:0,state:'play',zapCd:g.human?Math.min(12,mode==='online'?zapSec():22):20,zapSec:mode==='online'?zapSec():(mode==='tutorial'?0:22),sabCd:30,sabLeft:2,comms:null,visOn,breach:null,meetingUsed:false,scans:[],freezes:[],earned:0,aiSabCd:rand(50,75),hudT:0,tlKey:'',votes:new Map(),online:mode==='online',noBots:!fill,mode,role,resolving:false};
   ents.forEach(e=>{if(e.glitch)e.zcd=e.human?G.zapCd:20});G.nGl=ents.filter(e=>e.glitch).length;
   NET.inGame=mode==='online';
   const roster=ents.map(r=>({id:r.id,name:r.name,color:r.color,hat:r.hat,visor:r.visor,fp:r.fp||'',human:r.human}));
@@ -1368,7 +1372,7 @@ function guestUpdate(dt){
 function clientMsg(m){
   if(!m||typeof m!=='object')return;
   switch(m.t){
-    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;NET.eng=[0,1,2,3].includes(m.eng)?m.eng:0;NET.trk=[0,1,2,3].includes(m.trk)?m.trk:0;NET.vis=m.vis!==false;renderLobby();break;
+    case 'lobby':NET.list=m.players||[];NET.code=m.code||NET.code;NET.diff=DIFF[m.diff]?m.diff:'normal';NET.zap=ZAPS.includes(m.zap)?m.zap:22;NET.gl=m.gl===2?2:1;NET.eng=[0,1,2,3].includes(m.eng)?m.eng:0;NET.trk=[0,1,2,3].includes(m.trk)?m.trk:0;NET.vis=m.vis!==false;NET.bots=m.bots!==false;renderLobby();break;
     case 'reject':onlineError(m.why||'Could not join that squad.');leaveNet();break;
     case 'start':guestStart(m);break;
     default:if(!G)return;
@@ -2012,7 +2016,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794670574';
+const BUILD='1794756584';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2428,7 +2432,7 @@ function showEject(m){
 function checkWin(){
   if(!G||G.guest||G.state==='end')return;
   const[d,tot]=taskProgress();
-  if(G.ents.filter(e=>e.glitch).every(e=>e.ejected))return endGame('crew',G.nGl>1?'Both Glitches got launched out the airlock!':'The Glitch got launched out the airlock!');
+  if(G.ents.filter(e=>e.glitch).every(e=>e.ejected))return endGame('crew',G.ents.some(e=>e.glitch&&e.left)?(G.nGl>1?'The Glitches are gone. One left the game.':'The Glitch left the game.'):G.nGl>1?'Both Glitches got launched out the airlock!':'The Glitch got launched out the airlock!');
   if(d>=tot)return endGame('crew','Every repair is done. Trench Base is safe.');
   if(G.ents.filter(e=>e.alive&&!e.glitch).length<=1)return endGame('glitch','Only one crew bot is left awake.');
 }
@@ -2637,7 +2641,7 @@ $('#openHow').onclick=()=>{$('#how').hidden=false};
 $('#openShop').onclick=()=>{renderShop();$('#shop').hidden=false};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{$('#'+b.dataset.close).hidden=true;if(b.dataset.close==='shop'&&shopFromLobby){shopFromLobby=false;sendAvatar();$('#lobby').hidden=false;renderLobby();return}if(b.dataset.close==='online')showMenu();else if(!$('#menu').hidden)showMenu()});
 $('#lobbyLeave').onclick=askLeave;
-$('#lobbyStart').onclick=()=>{if(NET.mode==='host'&&NET.lobby.length){hideAll();newGame('online')}};
+$('#lobbyStart').onclick=()=>{if(NET.mode==='host'&&NET.lobby.length){if(!botsOn()&&NET.lobby.length<minFriends()){toast(`Friends only needs at least ${minFriends()} players${glCount()===2?' with 2 Glitches':''}. Wait for more friends, or set Robots to Fill empty spots.`,4);return}hideAll();newGame('online')}};
 // Share: works in Safari, home-screen web apps and the store apps (no browser Share button there).
 // Order: native share sheet, then the phone's Messages app, then copy the link.
 const SHARE_URL='https://boltsquadgames.com/';
@@ -2676,6 +2680,14 @@ function renderTrk(box,canEdit){
   box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.trackers=+b.dataset.t;delete save.tracker;persist();renderTrk(box,true);if(NET.mode==='host')sendLobby()});
 }
 function visTasksOn(){return save.visTasks!==false}
+function botsOn(){return save.noBots!==true}
+function minFriends(){return glCount()===2?5:3}
+function renderBots(box,canEdit){
+  if(!box)return;const v=canEdit?botsOn():NET.bots!==false;
+  if(!canEdit){box.innerHTML=`<span>Robots</span><b>${v?'Fill empty spots':'Friends only'}</b>`;return}
+  box.innerHTML='<span>Robots</span>'+[true,false].map(n=>`<button data-b="${n?1:0}" class="${v===n?'on':''}">${n?'Fill empty spots':'Friends only'}</button>`).join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.noBots=b.dataset.b!=='1';persist();renderLobby();if(NET.mode==='host')sendLobby()});
+}
 function renderVis(box,canEdit){
   if(!box)return;const v=canEdit?visTasksOn():NET.vis!==false;
   if(!canEdit){box.innerHTML=`<span>Visual tasks</span><b>${v?'On':'Off'}</b>`;return}
@@ -2693,7 +2705,7 @@ function renderGl(box,canEdit){
   if(!box)return;const v=canEdit?glCount():(NET.gl||1);
   if(!canEdit){box.innerHTML=`<span>Glitches</span><b>${v}</b>`;return}
   box.innerHTML='<span>Glitches</span>'+[1,2].map(n=>`<button data-g="${n}" class="${v===n?'on':''}">${n} Glitch${n>1?'es':''}</button>`).join('');
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.glitches=+b.dataset.g;persist();renderGl(box,true);if(NET.mode==='host')sendLobby()});
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>{save.glitches=+b.dataset.g;persist();renderGl(box,true);if(!$('#lobby').hidden)renderLobby();if(NET.mode==='host')sendLobby()});
 }
 function renderZap(box,canEdit){
   if(!box)return;const v=canEdit?zapSec():(NET.zap||22),i=ZAPS.indexOf(v);
@@ -2710,10 +2722,10 @@ function renderLobby(){
   const host=NET.mode==='host';
   $('#lobbyCode').textContent=NET.code||'·····';
   const list=NET.list||[];
-  $('#plist').innerHTML=list.map((p,i)=>`<div class="prow"><canvas width="68" height="68" data-i="${i}"></canvas>${esc(p.name)}<span class="tag">${i===0?'Squad leader':'Ready'}</span></div>`).join('')+(list.length<MAXP?`<div class="prow empty">${MAXP-list.length} open spot${MAXP-list.length>1?'s':''} · robots fill in</div>`:'');
+  $('#plist').innerHTML=list.map((p,i)=>`<div class="prow"><canvas width="68" height="68" data-i="${i}"></canvas>${esc(p.name)}<span class="tag">${i===0?'Squad leader':'Ready'}</span></div>`).join('')+(list.length<MAXP?`<div class="prow empty">${(host?botsOn():NET.bots!==false)?`${MAXP-list.length} open spot${MAXP-list.length>1?'s':''} · robots fill in`:`Friends only · no robots${host&&list.length<minFriends()?` · need ${minFriends()} players to start`:''}`}</div>`:'');
   $('#plist').querySelectorAll('canvas').forEach(c=>drawAva(c,list[+c.dataset.i]));
   drawAva($('#lobbyAva'),save);$('#lobbyMyName').textContent=cleanName(save.name);
-  renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderGl($('#glLobby'),host);renderEng($('#engLobby'),host);renderTrk($('#trkLobby'),host);renderVis($('#visLobby'),host);renderPal($('#palLobby'));
+  renderBots($('#botLobby'),host);renderDiff($('#diffLobby'),host);renderZap($('#zapLobby'),host);renderGl($('#glLobby'),host);renderEng($('#engLobby'),host);renderTrk($('#trkLobby'),host);renderVis($('#visLobby'),host);renderPal($('#palLobby'));
   $('#lobbyStart').hidden=!host;
   $('#lobbyStatus').textContent=host?'Tell your friends to open boltsquadgames.com, tap Play with Friends, then Join and type this code.':'You\'re in! Customize your robot while you wait for the squad leader to start.';
 }
