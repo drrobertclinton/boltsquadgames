@@ -543,6 +543,7 @@ html,body{touch-action:manipulation}button,canvas{touch-action:manipulation}
         <li>Fill the Repairs bar to win.</li>
         <li><b>SCAN</b> a robot up close. If it zapped someone in the last 45 seconds, it reads <b>HOT</b>.</li>
         <li>Find a frozen bot? Press <b>REPORT</b>. Then talk it out and vote the Glitch off the base.</li>
+        <li>During a sabotage you can't press the emergency button, but you can still <b>REPORT</b> a frozen bot.</li>
         <li>Got frozen? You become a ghost. Keep fixing things to help your team.</li>
       </ul>
       <h3>AS THE GLITCH</h3>
@@ -1194,7 +1195,7 @@ function hostAction(ent,type,d){
   const target=d&&Number.isInteger(d.v)?G.ents[d.v]:null;
   switch(type){
     case 'meet':
-      if(inPlay&&ent.alive&&!G.meetingUsed&&!G.breach&&(G.meetCd||0)<=0.5&&dist(ent,EMERG)<110){G.meetingUsed=true;startMeeting(ent,null)}break;
+      if(inPlay&&ent.alive&&!G.meetingUsed&&!anySab()&&(G.meetCd||0)<=0.5&&dist(ent,EMERG)<110){G.meetingUsed=true;startMeeting(ent,null)}break;
     case 'report':
       if(inPlay&&ent.alive&&target&&!target.alive&&!target.ejected&&!target.cleared&&!target.bodyFound&&Math.hypot(target.bx-ent.x,target.by-ent.y)<170)startMeeting(ent,target);break;
     case 'task':
@@ -1249,7 +1250,7 @@ function canUse(){
   if(G.lights&&!me.glitch&&dist(me,LIGHTS)<62)return 'lights';
   if(G.comms&&me.alive&&dist(me,COMMSFIX)<62)return 'comms';
   if(me.alive&&dist(me,MONITOR)<95)return 'cams';
-  if(me.alive&&!G.meetingUsed&&!G.breach&&(G.meetCd||0)<=0&&dist(me,EMERG)<70)return 'meet';
+  if(me.alive&&!G.meetingUsed&&!anySab()&&(G.meetCd||0)<=0&&dist(me,EMERG)<70)return 'meet';
   const s=nearStation();if(!s)return null;
   if(me.glitch)return 'fake';
   return(me.tasks.includes(s.id)&&!me.done.has(s.id))?'task':null;
@@ -2012,7 +2013,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794670574';
+const BUILD='1794756803';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2077,7 +2078,7 @@ function hud(){
   const me=G.me,[d,tot]=taskProgress();
   $('#barFill').style.width=(tot?d/tot*100:0)+'%';$('#barTxt').textContent=`Repairs ${d}/${tot}`;
   $('#coins').textContent=save.coins+G.earned;
-  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':(me.alive&&!G.meetingUsed&&(G.meetCd||0)>0&&dist(me,EMERG)<70)?'MEET '+Math.ceil(G.meetCd):u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':((me.glitch||me.eng)&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
+  const u=canUse();$('#useBtn').disabled=!u;$('#useBtn').firstChild.textContent=u==='meet'?'MEET':(!u&&me.alive&&!G.meetingUsed&&anySab()&&dist(me,EMERG)<70)?'NO MEET':(me.alive&&!G.meetingUsed&&(G.meetCd||0)>0&&dist(me,EMERG)<70)?'MEET '+Math.ceil(G.meetCd):u==='vent'?'VENT':u==='exit'?'EXIT':u==='cams'?'WATCH':((me.glitch||me.eng)&&me.alive&&(me.ventCd||0)>0&&nearVent(me,46))?'VENT '+Math.ceil(me.ventCd):'USE';$('#useBtn').classList.toggle('venting',u==='vent'||u==='exit');ventPanel();
   $('#repBtn').disabled=!(me.alive&&me.inVent==null&&nearBody(me,110));
   const sb=$('#scanBtn');
   if(me.glitch){const zc=myZ();sb.disabled=!me.alive||me.inVent!=null||zc>0||!nearestOther(75);$('#scanCd').textContent=zc>0?Math.ceil(zc):''}
