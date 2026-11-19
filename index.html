@@ -2012,7 +2012,7 @@ let miniT=0;
 function miniMapTick(){const m=$('#miniMap');if(!G||$('#hud').hidden){return}m.hidden=G.state==='meeting'||MINI_OFF;if(m.hidden)return;const n=performance.now();if(n-miniT<120)return;miniT=n;drawMap(m,true)}
 $('#miniMap').onclick=()=>{if($('#mapUI').hidden)toggleMap()};
 let MINI_OFF=false;
-const BUILD='1794670574';
+const BUILD='1795129134';
 async function checkUpdate(){
   if(!/(^|\.)boltsquadgames\.com$/.test(location.hostname)||G||NET.mode!=='off')return;
   try{const r=await fetch(location.pathname+'?v='+Date.now(),{cache:'no-store'});const tx=await r.text();const m=tx.match(/const BUILD='(\d+)'/);
@@ -2549,7 +2549,9 @@ function lbHidden(doc){const id=doc.name.split('/').pop();if(LB_HIDE.has(id))ret
 // test games from setup day, not real players
 const LB_HIDE=new Set(['zzsetuptest','zzlbprobe01','onlx1yx6ujy2','54iw01clr7bh','0zjnuuvdjyjl','uqtdxwccn1rx','llqq3fei3r7e','1nwzqdxxb7lh','j1vfs9qpl1zz','ly111ya8uwf2','ivo6dlj83r1x','6ix20fftq9zn','1jpwx24ewwuw','pkpv9a4bux8z','h71gfvjhhcf0','cg5tphbajo97',
   // test bots from the Oct 27 overnight play-testing (all named Sparky)
-  '07semdf4zxjd','0cemwrg4w8pf','0h7jx7couz1q','1altp8wjbmqt','35run8m9vng4','3sar0xhxavtg','3x62ihllbxwa','5rmt2yfplj66','5v7tuunt7g5l','5vc952ndz4sg','64zq4dm6hdhp','9ch3bjdzrq16','9oikinym7cno','apwfa3cqg9mn','bb3kqptoubn7','cfbe6vfn2uz2','cz4vxxa7dq5w','d3hc1bo1000t','drqxtks5mpdl','edye9qtec3w1','gdy3l85gr415','gitr7bmcyvyu','gx5eb7luxaco','ix8vtjuth12p','jtgjsp3a9j2p','k8dlccf92b55','ky41i0aq9hi8','lw7csa5p81vm','m41usc64l72f','m823b8l56kms','q4463vc35gf3','qhz0xewe855i','reoik82y8lln','rqexrriudim8','t0ei2rk1fsdc','tappnn79zdd8','trn06js02bhe','wmdzt1g01eae','xsv6w4ya8p0j','ydpg15jun219','zz6u3393lecg']);
+  '07semdf4zxjd','0cemwrg4w8pf','0h7jx7couz1q','1altp8wjbmqt','35run8m9vng4','3sar0xhxavtg','3x62ihllbxwa','5rmt2yfplj66','5v7tuunt7g5l','5vc952ndz4sg','64zq4dm6hdhp','9ch3bjdzrq16','9oikinym7cno','apwfa3cqg9mn','bb3kqptoubn7','cfbe6vfn2uz2','cz4vxxa7dq5w','d3hc1bo1000t','drqxtks5mpdl','edye9qtec3w1','gdy3l85gr415','gitr7bmcyvyu','gx5eb7luxaco','ix8vtjuth12p','jtgjsp3a9j2p','k8dlccf92b55','ky41i0aq9hi8','lw7csa5p81vm','m41usc64l72f','m823b8l56kms','q4463vc35gf3','qhz0xewe855i','reoik82y8lln','rqexrriudim8','t0ei2rk1fsdc','tappnn79zdd8','trn06js02bhe','wmdzt1g01eae','xsv6w4ya8p0j','ydpg15jun219','zz6u3393lecg',
+  // Knox (GleepGlorp) had two IDs; only his top one (83lg7rusehun) stays on the board
+  '4z3vr6o7z1xa']);
 async function renderLb(quiet){
   if(!quiet&&!renderLb.healed){renderLb.healed=1;lbHeal()}
   const box=$('#lbList');if(!quiet)box.innerHTML='<li><span class="empty">Loading...</span></li>';
